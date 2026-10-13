@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  HRD
+  MENTOR
+  STUDENT
+}
+
+enum AttendanceStatus {
+  HADIR
+  TERLAMBAT
+  IZIN
+  SAKIT
+}
+
+enum LogStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum PlacementStatus {
+  ACTIVE
+  FINISHED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean  @default(true)
+  student      Student?
+  mentor       Mentor?
+}
+
+model Student {
+  id         String      @id @default(cuid())
+  userId     String      @unique
+  user       User        @relation(fields: [userId], references: [id])
+  nis        String?
+  schoolName String
+  major      String?
+  className  String?
+  phone      String?
+  placements Placement[]
+}
+
+model Division {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  mentors    Mentor[]
+  placements Placement[]
+}
+
+model Mentor {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id])
+  isPic      Boolean  @default(false) // penanggung jawab utama divisi
+}
+
+model PklPeriod {
+  id         String      @id @default(cuid())
+  name       String
+  startDate  DateTime    @db.Date
+  endDate    DateTime    @db.Date
+  placements Placement[]
+}
+
+model Placement {
+  id         String          @id @default(cuid())
+  studentId  String
+  periodId   String
+  divisionId String
+  workStart  String // "08:00" jam masuk (bisa beda per siswa)
+  workEnd    String // "16:00" atau "17:00"
+  status     PlacementStatus @default(ACTIVE)
+  student    Student         @relation(fields: [studentId], references: [id])
+  period     PklPeriod       @relation(fields: [periodId], references: [id])
+  division   Division        @relation(fields: [divisionId], references: [id])
+  attendances Attendance[]
+  logs       ActivityLog[]
+
+  @@unique([studentId, periodId])
+}
+
+model Attendance {
+  id          String           @id @default(cuid())
+  placementId String
+  attDate     DateTime         @db.Date
+  checkIn     DateTime?
+  checkOut    DateTime?
+  status      AttendanceStatus
+  earlyLeave  Boolean          @default(false)
+  note        String?
+  placement   Placement        @relation(fields: [placementId], references: [id])
+
+  @@unique([placementId, attDate]) // 1 data absensi per siswa per hari
+}
+
+model ActivityLog {
+  id          String          @id @default(cuid())
+  placementId String
+  logDate     DateTime        @db.Date
+  startTime   String
+  endTime     String
+  taskFrom    String // pembimbing / pemberi tugas
+  description String
+  output      String?
+  obstacle    String?
+  status      LogStatus       @default(DRAFT)
+  submittedAt DateTime? // diisi saat dikirim (jam server)
+  placement   Placement       @relation(fields: [placementId], references: [id])
+  attachments LogAttachment[]
+}
+
+model LogAttachment {
+  id         String      @id @default(cuid())
+  logId      String
+  fileName   String
+  filePath   String // path di Supabase Storage (bukan URL publik)
+  fileType   String
+  fileSize   Int
+  uploadedAt DateTime    @default(now())
+  log        ActivityLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+}
