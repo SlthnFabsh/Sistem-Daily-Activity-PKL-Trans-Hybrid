@@ -7,6 +7,7 @@ import React from "react";
 import {
   Document,
   type DocumentProps,
+  Image,
   Page,
   StyleSheet,
   Text,
@@ -45,11 +46,21 @@ const s = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     borderBottomWidth: 2,
     borderBottomColor: PRIMARY,
     paddingBottom: 10,
     marginBottom: 14,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  logo: {
+    width: 55,
+    height: 55,
+    objectFit: "contain",
   },
   companyName: {
     fontSize: 16,
@@ -247,6 +258,8 @@ export type PdfReportData = {
   logs: PdfLogRow[];
   // Tanggal cetak
   printedAt: string;
+  // Logo perusahaan base64 (opsional)
+  logoBase64?: string;
 };
 
 // ─── Sub-komponen ────────────────────────────────────────
@@ -343,15 +356,20 @@ export function ReportDocument({
       <Page size="A4" orientation="landscape" style={s.page}>
         {/* ── Kop ── */}
         <View style={s.headerRow}>
-          <View>
-            <Text style={s.companyName}>{PDF_COMPANY_NAME}</Text>
-            <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_1}</Text>
-            {PDF_ADDRESS_LINE_2 ? (
-              <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_2}</Text>
+          <View style={s.headerLeft}>
+            {data.logoBase64 ? (
+              <Image src={data.logoBase64} style={s.logo} />
             ) : null}
-            <Text style={s.companyDetail}>
-              Telp: {PDF_PHONE} | Email: {PDF_EMAIL}
-            </Text>
+            <View>
+              <Text style={s.companyName}>{PDF_COMPANY_NAME}</Text>
+              <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_1}</Text>
+              {PDF_ADDRESS_LINE_2 ? (
+                <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_2}</Text>
+              ) : null}
+              <Text style={s.companyDetail}>
+                Telp: {PDF_PHONE} | Email: {PDF_EMAIL}
+              </Text>
+            </View>
           </View>
           <View>
             <Text style={s.reportTitle}>{PDF_REPORT_TITLE}</Text>

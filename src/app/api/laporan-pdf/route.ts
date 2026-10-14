@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/permissions";
 import { formatWibDate, getWibDateParts } from "@/lib/time";
@@ -186,6 +188,16 @@ export async function GET(req: NextRequest) {
   const picMentor =
     placement?.division?.mentors?.[0]?.user?.name ?? "";
 
+  let logoBase64: string | undefined;
+  try {
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`;
+    }
+  } catch {
+    // Abaikan jika gagal membaca logo
+  }
+
   const data: PdfReportData = {
     studentName: student.user.name,
     studentNis: student.nis ?? "",
@@ -204,6 +216,7 @@ export async function GET(req: NextRequest) {
     attendance,
     logs: logRows,
     printedAt,
+    logoBase64,
   };
 
   // ── Render PDF ─────────────────────────────────────────────────────────

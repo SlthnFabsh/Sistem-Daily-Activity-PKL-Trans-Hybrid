@@ -7,8 +7,9 @@ import { getActivePlacementForUser, isDateInPeriod } from "@/lib/attendance";
 import { isWithinBackdateWindow } from "@/lib/time";
 import { activityLogSchema } from "@/lib/validations";
 import { LogStatus } from "@/generated/prisma/client";
-import { toFieldErrors, type ActionResult } from "@/lib/action-result";
+import { toFieldErrors, type ActionResult, type ImportResult } from "@/lib/action-result";
 import { deleteFileFromStorage } from "@/lib/storage";
+import { processLogExcelImport } from "@/lib/log-import";
 
 const PATH = "/student/log";
 
@@ -226,3 +227,50 @@ export async function deleteAttachment(
   revalidatePath(PATH);
   return { ok: true, message: "Lampiran dihapus." };
 }
+
+// Impor log aktivitas masa lalu dari file Excel (.xlsx)
+export async function importStudentLogs(
+  _prev: ImportResult,
+  formData: FormData
+): Promise<ImportResult> {
+  const user = await requireRole("STUDENT");
+  const placement = await getActivePlacementForUser(user.id);
+  if (!placement) {
+    return {
+      ok: false,
+      message: "Anda belum memiliki penempatan PKL aktif.",
+      imported: 0,
+      failed: 0,
+      rows: [],
+    };
+  }
+
+  const file = formData.get("file");
+  if (!file || typeof (file as File).arrayBuffer !== "function") {
+    return {
+      ok: false,
+      message: "File Excel wajib dipilih.",
+      imported: 0,
+      failed: 0,
+      rows: [],
+    };
+  }
+
+  const startDateFilter =
+    formData.get("startDate")?.toString().trim() || undefined;
+  const endDateFilter =
+    formData.get("endDate")?.toString().trim() || undefined;
+
+  const result = await processLogExcelImport({
+    file: file as File,
+    placementId: placement.id,
+    period: placement.period,
+    startDateFilter,
+    endDateFilter,
+  });
+
+  revalidatePath("/student/log");
+  revalidatePath("/student/riwayat");
+  return result;
+}
+

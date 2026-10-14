@@ -130,3 +130,32 @@ export const activityLogSchema = z
       });
     }
   });
+
+// Skema untuk baris impor Excel log aktivitas
+export const importLogRowSchema = z
+  .object({
+    logDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid."),
+    startTime: z.string().regex(timeRegex, "Format jam mulai harus HH:MM.").default("08:00"),
+    endTime: z.string().regex(timeRegex, "Format jam selesai harus HH:MM.").default("16:00"),
+    taskFrom: z
+      .string()
+      .trim()
+      .min(2, "Pemberi tugas wajib diisi.")
+      .max(100, "Pemberi tugas maksimal 100 karakter."),
+    description: z
+      .string()
+      .trim()
+      .min(3, "Uraian kegiatan wajib diisi (minimal 3 karakter).")
+      .max(2000, "Uraian maksimal 2000 karakter."),
+    output: optionalText(1000, "Hasil"),
+    obstacle: optionalText(1000, "Hambatan"),
+  })
+  .superRefine((value, ctx) => {
+    if (value.endTime <= value.startTime) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["endTime"],
+        message: "Jam selesai harus setelah jam mulai.",
+      });
+    }
+  });

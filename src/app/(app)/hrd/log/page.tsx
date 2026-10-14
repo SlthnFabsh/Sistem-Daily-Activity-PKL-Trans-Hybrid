@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/permissions";
 import { formatWibDate, formatWibTime } from "@/lib/time";
 import { PageHeader } from "@/components/ui/page-header";
 import { LogReviewManager } from "@/components/log-review/log-review-manager";
+import { HrdImportTrigger } from "@/components/log/hrd-import-trigger";
 import type {
   LogReviewItem,
   StudentOption,
@@ -134,6 +135,7 @@ export default async function HrdLogPage(props: {
       <PageHeader
         title="Log Aktivitas Siswa"
         description="Tinjau log aktivitas terkirim dari seluruh siswa."
+        action={<HrdImportTrigger students={studentOptions} />}
       />
       <LogReviewManager
         logs={viewItems}

@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LogForm } from "./log-form";
+import { StudentImportTrigger } from "@/components/log/student-import-trigger";
 
 export default async function LogPage() {
   const user = await requireRole("STUDENT");
@@ -71,6 +72,7 @@ export default async function LogPage() {
       <PageHeader
         title="Log Aktivitas"
         description="Catat kegiatan harian dan unggah lampiran bukti."
+        action={<StudentImportTrigger />}
       />
 
       <div className="space-y-6">
