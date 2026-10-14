@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const signedUrl = await createSignedDownloadUrl(att.filePath);
+    const signedUrl = await createSignedDownloadUrl(att.filePath, 3600);
     return NextResponse.json({ ok: true, signedUrl });
   } catch {
     return NextResponse.json(

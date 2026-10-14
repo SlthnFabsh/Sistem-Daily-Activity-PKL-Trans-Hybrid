@@ -36,7 +36,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/student/laporan", label: "Laporan", icon: "file-text" },
   ],
   MENTOR: [
-    { href: "/mentor/log-siswa", label: "Log Siswa", icon: "users" },
+    { href: "/mentor/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/mentor/laporan", label: "Laporan", icon: "file-text" },
   ],
   HRD: [
@@ -45,7 +45,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/hrd/periode", label: "Periode", icon: "calendar-range" },
     { href: "/hrd/siswa", label: "Siswa", icon: "graduation-cap" },
     { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
-    { href: "/hrd/log-siswa", label: "Log Siswa", icon: "clipboard-list" },
+    { href: "/hrd/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
   ],
 };

@@ -22,7 +22,7 @@ export function Button({
   children,
   ...props
 }: Props) {
-  const Comp: any = asChild ? "span" : "button";
+  const Comp = (asChild ? "span" : "button") as React.ElementType;
   return (
     <Comp
       className={clsx(

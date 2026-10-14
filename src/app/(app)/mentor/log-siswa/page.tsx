@@ -1,10 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { redirect } from "next/navigation";
 
 export default function MentorLogSiswaPage() {
-  return (
-    <PlaceholderPage
-      title="Log Siswa"
-      description="Tinjau log aktivitas siswa di divisi Anda."
-    />
-  );
+  redirect("/mentor/log");
 }
