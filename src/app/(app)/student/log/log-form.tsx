@@ -408,6 +408,7 @@ export function LogForm({
                 multiple
                 onChange={handleFileSelect}
                 className="hidden"
+                id={`file-upload-${logId}`}
               />
               <Button
                 type="button"
@@ -415,18 +416,21 @@ export function LogForm({
                 disabled={uploading}
                 className="w-full"
                 onClick={() => fileInputRef.current?.click()}
+                asChild
               >
-                {uploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    Mengunggah...
-                  </>
-                ) : (
-                  <>
-                    <Paperclip className="h-4 w-4" aria-hidden />
-                    Tambah Lampiran
-                  </>
-                )}
+                <label htmlFor={`file-upload-${logId}`} className="cursor-pointer">
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Mengunggah...
+                    </>
+                  ) : (
+                    <>
+                      <Paperclip className="h-4 w-4" aria-hidden />
+                      Tambah Lampiran
+                    </>
+                  )}
+                </label>
               </Button>
             </div>
           )}
