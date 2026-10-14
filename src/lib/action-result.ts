@@ -7,6 +7,8 @@ export type ActionResult = {
   ok: boolean;
   message?: string;
   fieldErrors?: Record<string, string[]>;
+  signedUrl?: string;
+  filePath?: string;
 };
 
 export type ImportRowResult = {

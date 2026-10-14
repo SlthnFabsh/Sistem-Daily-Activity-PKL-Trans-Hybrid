@@ -86,3 +86,11 @@ export async function createSignedDownloadUrl(
   if (error) throw new Error(`Gagal membuat tautan unduh: ${error.message}`);
   return data.signedUrl;
 }
+
+/** Hapus file dari storage. */
+export async function deleteFileFromStorage(filePath: string): Promise<void> {
+  const { error } = await getAdminClient()
+    .storage.from(ATTACHMENTS_BUCKET)
+    .remove([filePath]);
+  if (error) throw new Error(`Gagal menghapus file: ${error.message}`);
+}
