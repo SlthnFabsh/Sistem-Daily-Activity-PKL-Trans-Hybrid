@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { Role } from "../generated/prisma/client";
 import { auth } from "./auth";
@@ -9,6 +10,10 @@ export type SessionUser = {
   name?: string;
   email?: string;
 };
+
+const getCachedSession = cache(async () => {
+  return auth();
+});
 
 export function homePathForRole(role: Role): string {
   switch (role) {
@@ -23,7 +28,7 @@ export function homePathForRole(role: Role): string {
 
 /** Mengharuskan pengguna sudah login dan mengembalikan data sesinya. */
 export async function requireUser(): Promise<SessionUser> {
-  const session = await auth();
+  const session = await getCachedSession();
   if (!session?.user?.id || !session.user.role) redirect("/login");
   return {
     id: session.user.id,

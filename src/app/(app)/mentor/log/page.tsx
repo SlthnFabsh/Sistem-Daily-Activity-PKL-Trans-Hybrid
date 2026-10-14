@@ -24,7 +24,22 @@ export default async function MentorLogPage(props: {
 
   const mentor = await prisma.mentor.findUnique({
     where: { userId: user.id },
-    include: { division: true },
+    include: {
+      division: {
+        include: {
+          placements: {
+            include: {
+              student: {
+                include: { user: { select: { name: true } } },
+              },
+            },
+            orderBy: {
+              student: { user: { name: "asc" } },
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!mentor) {
@@ -43,18 +58,8 @@ export default async function MentorLogPage(props: {
     );
   }
 
-  // Ambil semua siswa di divisi pembimbing (untuk opsi filter dropdown)
-  const placementsInDivision = await prisma.placement.findMany({
-    where: { divisionId: mentor.divisionId },
-    include: {
-      student: {
-        include: { user: { select: { name: true } } },
-      },
-    },
-    orderBy: {
-      student: { user: { name: "asc" } },
-    },
-  });
+  // Ambil semua siswa di divisi pembimbing dari hasil include
+  const placementsInDivision = mentor.division.placements;
 
   const studentMap = new Map<string, StudentOption>();
   for (const p of placementsInDivision) {

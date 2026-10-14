@@ -31,34 +31,37 @@ export default async function LogPage() {
   // tanpa harus menekan "Simpan Draft" lebih dulu. Bila log hari ini sudah
   // dikirim, tidak dibuat draft baru (cukup tampil di bagian "Terkirim").
   const today = todayWib();
-  let todaysDraft = await prisma.activityLog.findFirst({
-    where: { placementId: placement.id, logDate: today, status: "DRAFT" },
-    include: { attachments: true },
-  });
-  if (!todaysDraft) {
-    const anyLogToday = await prisma.activityLog.findFirst({
-      where: { placementId: placement.id, logDate: today },
-    });
-    if (!anyLogToday) {
-      todaysDraft = await prisma.activityLog.create({
-        data: {
-          placementId: placement.id,
-          logDate: today,
-          startTime: "08:00",
-          endTime: "16:00",
-          taskFrom: "",
-          description: "",
-        },
-        include: { attachments: true },
-      });
-    }
-  }
+  const todayIso = today.toISOString().slice(0, 10);
 
-  const logs = await prisma.activityLog.findMany({
+  let logs = await prisma.activityLog.findMany({
     where: { placementId: placement.id },
     include: { attachments: true },
     orderBy: { logDate: "desc" },
   });
+
+  let todaysDraft = logs.find(
+    (l) =>
+      l.status === "DRAFT" && l.logDate.toISOString().slice(0, 10) === todayIso
+  );
+  const anyLogToday = logs.some(
+    (l) => l.logDate.toISOString().slice(0, 10) === todayIso
+  );
+
+  if (!todaysDraft && !anyLogToday) {
+    const created = await prisma.activityLog.create({
+      data: {
+        placementId: placement.id,
+        logDate: today,
+        startTime: "08:00",
+        endTime: "16:00",
+        taskFrom: "",
+        description: "",
+      },
+      include: { attachments: true },
+    });
+    todaysDraft = created;
+    logs = [created, ...logs];
+  }
 
   const draftLogs = logs.filter((l) => l.status === "DRAFT");
   const submittedLogs = logs.filter((l) => l.status === "SUBMITTED");

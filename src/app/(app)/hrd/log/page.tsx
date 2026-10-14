@@ -21,26 +21,6 @@ export default async function HrdLogPage(props: {
 }) {
   await requireRole("HRD");
 
-  // Ambil semua siswa (lintas divisi) untuk opsi filter dropdown
-  const allStudents = await prisma.student.findMany({
-    include: {
-      user: { select: { name: true } },
-      placements: {
-        include: { division: { select: { name: true } } },
-        orderBy: { period: { startDate: "desc" } },
-        take: 1,
-      },
-    },
-    orderBy: { user: { name: "asc" } },
-  });
-
-  const studentOptions: StudentOption[] = allStudents.map((s) => ({
-    id: s.id,
-    name: s.user.name,
-    schoolName: s.schoolName,
-    divisionName: s.placements[0]?.division.name,
-  }));
-
   // Ambil parameter filter dari query URL
   const search = await props.searchParams;
   const rawStudentId =
@@ -79,21 +59,42 @@ export default async function HrdLogPage(props: {
     };
   }
 
-  const logs = await prisma.activityLog.findMany({
-    where: whereClause,
-    include: {
-      attachments: true,
-      placement: {
-        include: {
-          student: {
-            include: { user: { select: { name: true } } },
-          },
-          division: { select: { name: true } },
+  // Jalankan query siswa dan log secara paralel
+  const [allStudents, logs] = await Promise.all([
+    prisma.student.findMany({
+      include: {
+        user: { select: { name: true } },
+        placements: {
+          include: { division: { select: { name: true } } },
+          orderBy: { period: { startDate: "desc" } },
+          take: 1,
         },
       },
-    },
-    orderBy: [{ logDate: "desc" }, { submittedAt: "desc" }],
-  });
+      orderBy: { user: { name: "asc" } },
+    }),
+    prisma.activityLog.findMany({
+      where: whereClause,
+      include: {
+        attachments: true,
+        placement: {
+          include: {
+            student: {
+              include: { user: { select: { name: true } } },
+            },
+            division: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ logDate: "desc" }, { submittedAt: "desc" }],
+    }),
+  ]);
+
+  const studentOptions: StudentOption[] = allStudents.map((s) => ({
+    id: s.id,
+    name: s.user.name,
+    schoolName: s.schoolName,
+    divisionName: s.placements[0]?.division.name,
+  }));
 
   const viewItems: LogReviewItem[] = logs.map((l) => ({
     id: l.id,
