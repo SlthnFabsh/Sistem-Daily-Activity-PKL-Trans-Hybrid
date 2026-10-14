@@ -73,6 +73,16 @@ export const studentSchema = z.object({
 // Skema yang sama dipakai untuk impor Excel.
 export const importRowSchema = studentSchema;
 
+// Absensi: Izin/Sakit wajib menyertakan keterangan.
+export const leaveSchema = z.object({
+  status: z.enum(["IZIN", "SAKIT"], { message: "Pilih Izin atau Sakit." }),
+  note: z
+    .string()
+    .trim()
+    .min(1, "Keterangan wajib diisi.")
+    .max(500, "Keterangan maksimal 500 karakter."),
+});
+
 export const placementSchema = z
   .object({
     studentId: z.string().min(1, "Siswa wajib dipilih."),

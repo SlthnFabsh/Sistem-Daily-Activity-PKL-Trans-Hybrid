@@ -41,6 +41,23 @@ export function nowWibTime(date: Date = new Date()): string {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+/** Format tanggal panjang Bahasa Indonesia di zona WIB, mis. "Rabu, 14 Oktober 2026". */
+export function formatWibDate(date: Date): string {
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: WIB_ZONE,
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+/** Format waktu "HH:mm" WIB dari sebuah DateTime. */
+export function formatWibTime(date: Date): string {
+  const { hours, minutes } = getWibTimeParts(date);
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
 /** Menit WIB saat ini (0-1439). */
 export function nowWibMinutes(date: Date = new Date()): number {
   const { hours, minutes } = getWibTimeParts(date);

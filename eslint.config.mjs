@@ -15,6 +15,19 @@ const eslintConfig = defineConfig([
     // Generated Prisma Client:
     "src/generated/**",
   ]),
+  {
+    rules: {
+      // Param/variabel dengan awalan "_" memang sengaja tidak dipakai.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
