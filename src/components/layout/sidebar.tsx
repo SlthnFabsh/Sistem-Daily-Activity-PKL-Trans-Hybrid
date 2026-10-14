@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import type { NavItem } from "@/lib/navigation";
-import { roleLabel } from "@/lib/navigation";
+import { iconMap, roleLabel } from "@/lib/navigation";
 import type { Role } from "@/generated/prisma/client";
 import { LogoutButton } from "./logout-button";
 
@@ -33,7 +33,7 @@ export function Sidebar({
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {items.map((item) => {
           const active = isActive(pathname, item.href);
-          const Icon = item.icon;
+          const Icon = iconMap[item.icon];
           return (
             <Link
               key={item.href}

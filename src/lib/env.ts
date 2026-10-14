@@ -43,3 +43,27 @@ export function getServerEnv(): ServerEnv {
   }
   return result.data;
 }
+
+const supabaseEnvSchema = z.object({
+  SUPABASE_URL: z.string().min(1, "SUPABASE_URL kosong"),
+  SUPABASE_SERVICE_ROLE_KEY: z
+    .string()
+    .min(1, "SUPABASE_SERVICE_ROLE_KEY kosong"),
+});
+
+export type SupabaseEnv = z.infer<typeof supabaseEnvSchema>;
+
+// Validasi hanya variabel Supabase. Dipakai oleh storage yang tidak
+// membutuhkan AUTH_SECRET/NEXTAUTH_URL.
+export function getSupabaseEnv(): SupabaseEnv {
+  const result = supabaseEnvSchema.safeParse(process.env);
+  if (!result.success) {
+    const detail = result.error.issues
+      .map((i) => `- ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
+    throw new Error(
+      `Konfigurasi Supabase tidak lengkap. Variabel berikut belum terisi di file .env:\n${detail}`
+    );
+  }
+  return result.data;
+}

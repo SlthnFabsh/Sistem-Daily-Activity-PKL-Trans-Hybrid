@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
-import { getServerEnv } from "./env";
+import { getSupabaseEnv } from "./env";
 
 // Helper Supabase Storage khusus server (service role).
 // JANGAN pernah diimport dari komponen client; SUPABASE_SERVICE_ROLE_KEY tidak
@@ -25,7 +25,7 @@ let adminClient: SupabaseClient | undefined;
 /** Client Supabase dengan service role, dibuat malas (lazy) agar build tidak membutuhkannya. */
 export function getAdminClient(): SupabaseClient {
   if (!adminClient) {
-    const env = getServerEnv();
+    const env = getSupabaseEnv();
     adminClient = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import type { NavItem } from "@/lib/navigation";
+import { iconMap } from "@/lib/navigation";
 
 function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -18,7 +19,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
       <div className="grid grid-cols-4">
         {visible.map((item) => {
           const active = isActive(pathname, item.href);
-          const Icon = item.icon;
+          const Icon = iconMap[item.icon];
           return (
             <Link
               key={item.href}

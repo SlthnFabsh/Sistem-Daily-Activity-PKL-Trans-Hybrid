@@ -1,5 +1,22 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { prisma } from "@/lib/db";
+import { requireRole } from "@/lib/permissions";
+import { PageHeader } from "@/components/ui/page-header";
+import { DivisionManager } from "./division-manager";
 
-export default function DivisiPage() {
-  return <PlaceholderPage title="Divisi" description="Kelola divisi perusahaan." />;
+export default async function DivisiPage() {
+  await requireRole("HRD");
+
+  const divisions = await prisma.division.findMany({
+    orderBy: { name: "asc" },
+  });
+
+  return (
+    <>
+      <PageHeader
+        title="Divisi"
+        description="Kelola divisi tempat siswa PKL ditempatkan."
+      />
+      <DivisionManager divisions={divisions} />
+    </>
+  );
 }

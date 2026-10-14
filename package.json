@@ -12,7 +12,8 @@
     "storage:setup": "tsx scripts/storage-setup.ts",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "setup": "tsx scripts/setup.ts"
+    "setup": "tsx scripts/setup.ts",
+    "sample:import": "tsx scripts/generate-sample-import.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
