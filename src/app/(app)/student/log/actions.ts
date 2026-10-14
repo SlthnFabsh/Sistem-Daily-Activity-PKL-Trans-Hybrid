@@ -8,13 +8,7 @@ import { isWithinBackdateWindow } from "@/lib/time";
 import { activityLogSchema } from "@/lib/validations";
 import { LogStatus } from "@/generated/prisma/client";
 import { toFieldErrors, type ActionResult } from "@/lib/action-result";
-import {
-  buildStoragePath,
-  createSignedUploadUrl,
-  deleteFileFromStorage,
-  MAX_FILES_PER_LOG,
-  validateLogFile,
-} from "@/lib/storage";
+import { deleteFileFromStorage } from "@/lib/storage";
 
 const PATH = "/student/log";
 
@@ -123,38 +117,45 @@ export async function submitLog(
     };
   }
 
-  const data = {
-    placementId: placement.id,
-    logDate,
-    startTime: parsed.data.startTime,
-    endTime: parsed.data.endTime,
-    taskFrom: parsed.data.taskFrom,
-    description: parsed.data.description,
-    output: parsed.data.output || null,
-    obstacle: parsed.data.obstacle || null,
-  };
-
-  const existingId = formData.get("logId");
-  if (existingId && typeof existingId === "string") {
-    const existing = await prisma.activityLog.findUnique({
-      where: { id: existingId },
-      include: { placement: { include: { student: true } } },
-    });
-    if (!existing || existing.placement.student.userId !== user.id) {
-      return { ok: false, message: "Log tidak ditemukan." };
-    }
-    if (existing.status !== LogStatus.DRAFT) {
-      return { ok: false, message: "Log yang sudah dikirim tidak bisa diubah." };
-    }
-    await prisma.activityLog.update({
-      where: { id: existingId },
-      data: { ...data, status: LogStatus.SUBMITTED, submittedAt: new Date() },
-    });
-  } else {
-    await prisma.activityLog.create({
-      data: { ...data, status: LogStatus.SUBMITTED, submittedAt: new Date() },
-    });
+  // Kirim hanya berlaku untuk draft yang sudah ada. Lampiran bukti wajib
+  // minimal 1 file, sehingga log tanpa lampiran tidak boleh dikirim.
+  const logId = formData.get("logId");
+  if (!logId || typeof logId !== "string") {
+    return { ok: false, message: "Simpan draft log terlebih dahulu." };
   }
+
+  const existing = await prisma.activityLog.findUnique({
+    where: { id: logId },
+    include: { attachments: true, placement: { include: { student: true } } },
+  });
+  if (!existing || existing.placement.student.userId !== user.id) {
+    return { ok: false, message: "Log tidak ditemukan." };
+  }
+  if (existing.status !== LogStatus.DRAFT) {
+    return { ok: false, message: "Log yang sudah dikirim tidak bisa diubah." };
+  }
+  if (existing.attachments.length === 0) {
+    return {
+      ok: false,
+      message: "Lampiran bukti wajib diisi minimal 1 file.",
+    };
+  }
+
+  await prisma.activityLog.update({
+    where: { id: logId },
+    data: {
+      placementId: placement.id,
+      logDate,
+      startTime: parsed.data.startTime,
+      endTime: parsed.data.endTime,
+      taskFrom: parsed.data.taskFrom,
+      description: parsed.data.description,
+      output: parsed.data.output || null,
+      obstacle: parsed.data.obstacle || null,
+      status: LogStatus.SUBMITTED,
+      submittedAt: new Date(),
+    },
+  });
 
   revalidatePath(PATH);
   return { ok: true, message: "Log berhasil dikirim." };
@@ -191,74 +192,6 @@ export async function deleteLogDraft(
   await prisma.activityLog.delete({ where: { id: logId } });
   revalidatePath(PATH);
   return { ok: true, message: "Log dihapus." };
-}
-
-// Buat signed upload URL untuk lampiran (hanya DRAFT).
-export async function createUploadUrl(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  const user = await requireRole("STUDENT");
-
-  const logId = formData.get("logId");
-  const fileName = formData.get("fileName");
-  const fileType = formData.get("fileType");
-  const fileSize = Number(formData.get("fileSize"));
-
-  if (!logId || typeof logId !== "string") {
-    return { ok: false, message: "ID log tidak valid." };
-  }
-  if (!fileName || typeof fileName !== "string") {
-    return { ok: false, message: "Nama file tidak valid." };
-  }
-  if (!fileType || typeof fileType !== "string") {
-    return { ok: false, message: "Tipe file tidak valid." };
-  }
-  if (Number.isNaN(fileSize) || fileSize <= 0) {
-    return { ok: false, message: "Ukuran file tidak valid." };
-  }
-
-  const log = await prisma.activityLog.findUnique({
-    where: { id: logId },
-    include: { placement: { include: { student: true } }, attachments: true },
-  });
-  if (!log || log.placement.student.userId !== user.id) {
-    return { ok: false, message: "Log tidak ditemukan." };
-  }
-  if (log.status !== LogStatus.DRAFT) {
-    return {
-      ok: false,
-      message: "Log yang sudah dikirim tidak bisa ditambah lampirannya.",
-    };
-  }
-  if (log.attachments.length >= MAX_FILES_PER_LOG) {
-    return {
-      ok: false,
-      message: `Maksimal ${MAX_FILES_PER_LOG} file per log.`,
-    };
-  }
-
-  const validation = validateLogFile({ name: fileName, type: fileType, size: fileSize });
-  if (!validation.ok) {
-    return { ok: false, message: validation.error ?? "File tidak valid." };
-  }
-
-  const filePath = buildStoragePath(logId, fileName);
-  const signedUrl = await createSignedUploadUrl(filePath);
-
-  // Catat metadata lampiran di DB.
-  await prisma.logAttachment.create({
-    data: {
-      logId,
-      fileName,
-      filePath,
-      fileType,
-      fileSize,
-    },
-  });
-
-  revalidatePath(PATH);
-  return { ok: true, message: "Lampiran ditambahkan.", signedUrl, filePath };
 }
 
 // Hapus lampiran — hanya boleh jika log masih DRAFT.

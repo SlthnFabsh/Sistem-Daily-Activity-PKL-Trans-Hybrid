@@ -11,6 +11,9 @@ import { LogStatus } from "@/generated/prisma/client";
 
 // POST /api/log-upload-url
 // Membuat signed upload URL untuk lampiran log (hanya DRAFT).
+// Metadata lampiran TIDAK dicatat di sini; dicatat oleh
+// /api/log-attachment/confirm setelah file benar-benar terunggah, agar tidak
+// ada baris lampiran yatim ketika unggahan gagal.
 export async function POST(req: NextRequest) {
   const user = await requireRole("STUDENT");
 
@@ -62,11 +65,6 @@ export async function POST(req: NextRequest) {
 
   const filePath = buildStoragePath(logId, fileName);
   const signedUrl = await createSignedUploadUrl(filePath);
-
-  // Catat metadata lampiran di DB.
-  await prisma.logAttachment.create({
-    data: { logId, fileName, filePath, fileType, fileSize },
-  });
 
   return NextResponse.json({ ok: true, signedUrl, filePath });
 }

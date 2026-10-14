@@ -61,6 +61,13 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const signedUrl = await createSignedDownloadUrl(att.filePath);
-  return NextResponse.json({ ok: true, signedUrl });
+  try {
+    const signedUrl = await createSignedDownloadUrl(att.filePath);
+    return NextResponse.json({ ok: true, signedUrl });
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, message: "Lampiran tidak ditemukan atau gagal dimuat." },
+      { status: 404 }
+    );
+  }
 }

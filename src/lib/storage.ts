@@ -87,6 +87,14 @@ export async function createSignedDownloadUrl(
   return data.signedUrl;
 }
 
+/** Cek apakah objek benar-benar ada di storage (bukan hanya metadata di DB). */
+export async function storageObjectExists(filePath: string): Promise<boolean> {
+  const { data, error } = await getAdminClient()
+    .storage.from(ATTACHMENTS_BUCKET)
+    .createSignedUrl(filePath, 60);
+  return !error && Boolean(data?.signedUrl);
+}
+
 /** Hapus file dari storage. */
 export async function deleteFileFromStorage(filePath: string): Promise<void> {
   const { error } = await getAdminClient()

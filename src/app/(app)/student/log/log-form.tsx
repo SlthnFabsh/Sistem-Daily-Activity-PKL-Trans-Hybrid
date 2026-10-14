@@ -65,6 +65,7 @@ export function LogForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formId = `log-form-${logId ?? "new"}`;
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -125,6 +126,24 @@ export function LogForm({
           continue;
         }
 
+        // Konfirmasi bahwa file benar-benar tersimpan sebelum mencatat metadata.
+        const confirmRes = await fetch("/api/log-attachment/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            logId,
+            filePath: data.filePath,
+            fileName: file.name,
+            fileType: fileToUpload.type,
+            fileSize: fileToUpload.size,
+          }),
+        });
+        const confirmData = await confirmRes.json();
+        if (!confirmData.ok) {
+          setUploadError(confirmData.message ?? "Gagal mengkonfirmasi lampiran.");
+          continue;
+        }
+
         window.location.reload();
       } catch (err) {
         setUploading(false);
@@ -159,7 +178,7 @@ export function LogForm({
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <form action={draftAction} className="space-y-4">
+        <form id={formId} action={draftAction} className="space-y-4">
           {logId && <input type="hidden" name="logId" value={logId} />}
 
           <div className="grid grid-cols-2 gap-3">
@@ -298,23 +317,15 @@ export function LogForm({
               >
                 Batal
               </Button>
-              <form
-                action={submitAction}
-                onSubmit={() => setShowConfirm(false)}
+              <Button
+                type="submit"
+                form={formId}
+                formAction={submitAction}
                 className="flex-1"
+                onClick={() => setShowConfirm(false)}
               >
-                {logId && <input type="hidden" name="logId" value={logId} />}
-                <input type="hidden" name="logDate" value={defaultValues?.logDate ?? ""} />
-                <input type="hidden" name="startTime" value={defaultValues?.startTime ?? ""} />
-                <input type="hidden" name="endTime" value={defaultValues?.endTime ?? ""} />
-                <input type="hidden" name="taskFrom" value={defaultValues?.taskFrom ?? ""} />
-                <input type="hidden" name="description" value={defaultValues?.description ?? ""} />
-                <input type="hidden" name="output" value={defaultValues?.output ?? ""} />
-                <input type="hidden" name="obstacle" value={defaultValues?.obstacle ?? ""} />
-                <Button type="submit" className="w-full">
-                  Ya, Kirim
-                </Button>
-              </form>
+                Ya, Kirim
+              </Button>
             </div>
           </Card>
         </div>
@@ -322,10 +333,17 @@ export function LogForm({
 
       {logId && (
         <Card className="p-4">
-          <h3 className="text-sm font-semibold text-text">Lampiran bukti</h3>
+          <h3 className="text-sm font-semibold text-text">
+            Lampiran bukti (wajib)
+          </h3>
           <p className="mt-0.5 text-xs text-text-muted">
             JPG, PNG, PDF, DOCX, XLSX. Maks 5 MB per file, maks 3 file.
           </p>
+          {attachments.length === 0 && (
+            <p className="mt-1 text-xs text-amber-600">
+              Minimal 1 lampiran untuk bisa mengirim log.
+            </p>
+          )}
 
           {uploadError && (
             <div className="mt-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm text-red-600">
@@ -382,28 +400,26 @@ export function LogForm({
                 multiple
                 onChange={handleFileSelect}
                 className="hidden"
-                id={`file-upload-${logId}`}
               />
-              <label htmlFor={`file-upload-${logId}`} className="block cursor-pointer">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={uploading}
-                  className="w-full"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                      Mengunggah...
-                    </>
-                  ) : (
-                    <>
-                      <Paperclip className="h-4 w-4" aria-hidden />
-                      Tambah Lampiran
-                    </>
-                  )}
-                </Button>
-              </label>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={uploading}
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Mengunggah...
+                  </>
+                ) : (
+                  <>
+                    <Paperclip className="h-4 w-4" aria-hidden />
+                    Tambah Lampiran
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </Card>
