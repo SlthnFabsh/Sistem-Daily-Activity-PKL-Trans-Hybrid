@@ -66,6 +66,7 @@ export function LogForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
   const formId = `log-form-${logId ?? "new"}`;
 
   // Unggah lampiran juga tampilkan overlay "Memproses..." global.
@@ -291,21 +292,38 @@ export function LogForm({
             <Button
               type="submit"
               variant="secondary"
-              disabled={draftPending}
+              disabled={draftPending || submitPending}
               className="flex-1"
             >
               {draftPending ? "Menyimpan..." : "Simpan Draft"}
             </Button>
             <Button
               type="button"
-              onClick={() => setShowConfirm(true)}
-              disabled={submitPending}
+              onClick={() => {
+                const form = document.getElementById(formId) as HTMLFormElement | null;
+                if (form && !form.reportValidity()) return;
+                setShowConfirm(true);
+              }}
+              disabled={submitPending || draftPending}
               className="flex-1"
             >
               <Send className="h-4 w-4" aria-hidden />
               {submitPending ? "Mengirim..." : "Kirim"}
             </Button>
           </div>
+
+          {/* Hidden submit button for "Kirim" action - triggered from confirm dialog */}
+          <button
+            ref={submitButtonRef}
+            id={`${formId}-submit-hidden`}
+            type="submit"
+            formAction={submitAction}
+            style={{ display: "none" }}
+            hidden
+            aria-hidden="true"
+            tabIndex={-1}
+            disabled={submitPending}
+          />
         </form>
       </Card>
 
@@ -326,11 +344,13 @@ export function LogForm({
                 Batal
               </Button>
               <Button
-                type="submit"
-                form={formId}
-                formAction={submitAction}
+                type="button"
                 className="flex-1"
-                onClick={() => setShowConfirm(false)}
+                onClick={() => {
+                  submitButtonRef.current?.click();
+                  setShowConfirm(false);
+                }}
+                disabled={submitPending}
               >
                 Ya, Kirim
               </Button>
