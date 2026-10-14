@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionForm } from "@/lib/use-action-form";
 import { LogIn, LogOut } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
 import { checkIn, checkOut, submitLeave } from "./actions";
@@ -39,9 +39,9 @@ export function AbsensiPanel({
   workEnd: string;
   today: AttendanceView | null;
 }) {
-  const [inState, inAction, inPending] = useActionState(checkIn, initialState);
-  const [outState, outAction, outPending] = useActionState(checkOut, initialState);
-  const [leaveState, leaveAction, leavePending] = useActionState(
+  const [inState, inAction, inPending] = useActionForm(checkIn, initialState);
+  const [outState, outAction, outPending] = useActionForm(checkOut, initialState);
+  const [leaveState, leaveAction, leavePending] = useActionForm(
     submitLeave,
     initialState
   );

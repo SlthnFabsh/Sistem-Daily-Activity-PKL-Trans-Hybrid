@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionForm } from "@/lib/use-action-form";
 import { useRouter } from "next/navigation";
 import { KeyRound, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
@@ -34,7 +34,7 @@ export function MentorManager({
   divisions: DivisionOption[];
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(saveMentor, initialState);
+  const [state, formAction, pending] = useActionForm(saveMentor, initialState);
   const {
     notice,
     error,

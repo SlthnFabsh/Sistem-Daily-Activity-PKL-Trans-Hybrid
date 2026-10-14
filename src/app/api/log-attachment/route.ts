@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   try {
     const signedUrl = await createSignedDownloadUrl(att.filePath);
     return NextResponse.json({ ok: true, signedUrl });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { ok: false, message: "Lampiran tidak ditemukan atau gagal dimuat." },
       { status: 404 }

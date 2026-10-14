@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useActionState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useActionForm } from "@/lib/use-action-form";
 import imageCompression from "browser-image-compression";
 import { Paperclip, Send, Trash2, Loader2 } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
+import { endPending, startPending } from "@/lib/pending-store";
 import {
   saveLogDraft,
   submitLog,
@@ -44,19 +45,19 @@ export function LogForm({
   };
   attachments: Attachment[];
 }) {
-  const [draftState, draftAction, draftPending] = useActionState(
+  const [draftState, draftAction, draftPending] = useActionForm(
     saveLogDraft,
     initialState
   );
-  const [submitState, submitAction, submitPending] = useActionState(
+  const [submitState, submitAction, submitPending] = useActionForm(
     submitLog,
     initialState
   );
-  const [deleteState, deleteAction, deletePending] = useActionState(
+  const [deleteState, deleteAction, deletePending] = useActionForm(
     deleteLogDraft,
     initialState
   );
-  const [deleteAttState, deleteAttAction] = useActionState(
+  const [deleteAttState, deleteAttAction] = useActionForm(
     deleteAttachment,
     initialState
   );
@@ -66,6 +67,13 @@ export function LogForm({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formId = `log-form-${logId ?? "new"}`;
+
+  // Unggah lampiran juga tampilkan overlay "Memproses..." global.
+  useEffect(() => {
+    if (!uploading) return;
+    startPending();
+    return endPending;
+  }, [uploading]);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;

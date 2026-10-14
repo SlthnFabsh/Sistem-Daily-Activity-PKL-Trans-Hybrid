@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, FileUp, KeyRound, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ActionResult, ImportResult } from "@/lib/action-result";
 import { useActionFeedback } from "@/lib/use-action-feedback";
+import { useActionForm } from "@/lib/use-action-form";
 import {
   saveStudent,
   deleteStudent,
@@ -39,8 +40,8 @@ export function StudentManager({ students }: { students: StudentView[] }) {
   const router = useRouter();
   const [importKey, setImportKey] = useState(0);
   const [importDismissed, setImportDismissed] = useState(false);
-  const [state, formAction, pending] = useActionState(saveStudent, initialState);
-  const [importState, importAction, importPending] = useActionState(
+  const [state, formAction, pending] = useActionForm(saveStudent, initialState);
+  const [importState, importAction, importPending] = useActionForm(
     importStudents,
     importInitialState
   );

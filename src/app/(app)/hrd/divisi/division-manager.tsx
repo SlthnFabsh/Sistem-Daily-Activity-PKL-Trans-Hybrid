@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionForm } from "@/lib/use-action-form";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import type { Division } from "@/generated/prisma/client";
@@ -16,7 +16,7 @@ const initialState: ActionResult = { ok: false };
 
 export function DivisionManager({ divisions }: { divisions: Division[] }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(saveDivision, initialState);
+  const [state, formAction, pending] = useActionForm(saveDivision, initialState);
   const {
     notice,
     error,

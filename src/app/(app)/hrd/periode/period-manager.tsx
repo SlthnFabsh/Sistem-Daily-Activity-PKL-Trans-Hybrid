@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionForm } from "@/lib/use-action-form";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
@@ -32,7 +32,7 @@ function formatPeriodLabel(start: string, end: string): string {
 
 export function PeriodManager({ periods }: { periods: PeriodView[] }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(savePeriod, initialState);
+  const [state, formAction, pending] = useActionForm(savePeriod, initialState);
   const {
     notice,
     error,
