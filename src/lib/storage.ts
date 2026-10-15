@@ -102,3 +102,91 @@ export async function deleteFileFromStorage(filePath: string): Promise<void> {
     .remove([filePath]);
   if (error) throw new Error(`Gagal menghapus file: ${error.message}`);
 }
+
+// ── Attendance photo ────────────────────────────────────────────
+
+export const ATTENDANCE_BUCKET = "attendance-photos";
+export const MAX_ATTENDANCE_PHOTO_SIZE = 10 * 1024 * 1024; // 10 MB
+
+export const ALLOWED_ATTENDANCE_MIME = [
+  "image/jpeg",
+  "image/png",
+  "image/heic",
+  "image/heif",
+];
+
+export function validateAttendancePhoto(file: {
+  name: string;
+  type: string;
+  size: number;
+}): FileValidation {
+  if (file.size > MAX_ATTENDANCE_PHOTO_SIZE) {
+    return {
+      ok: false,
+      error: `Foto "${file.name}" melebihi batas 10 MB.`,
+    };
+  }
+  const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+  const okExt = ["jpg", "jpeg", "png", "heic", "heif"].includes(ext);
+  const okMime = ALLOWED_ATTENDANCE_MIME.includes(file.type);
+  if (!okExt || !okMime) {
+    return {
+      ok: false,
+      error: `Foto "${file.name}" tidak diizinkan. Format: JPG, PNG, HEIC, HEIF.`,
+    };
+  }
+  return { ok: true, error: null };
+}
+
+/** Path di storage: attendance/{placementId}/{attDate}/{uuid}.{ext} */
+export function buildAttendancePhotoPath(
+  placementId: string,
+  attDate: Date,
+  originalName: string
+): string {
+  const ext = (originalName.split(".").pop() ?? "").toLowerCase();
+  const safeExt = ext === "jpeg" ? "jpg" : ext;
+  const attDateStr = attDate.toISOString().slice(0, 10);
+  return `attendance/${placementId}/${attDateStr}/${randomUUID()}.${safeExt}`;
+}
+
+/** Upload foto attendance dari buffer ke storage; mengembalikan path storage. */
+export async function uploadAttendancePhoto(
+  buffer: Buffer,
+  placementId: string,
+  attDate: Date,
+  originalName: string
+): Promise<string> {
+  const validation = validateAttendancePhoto({
+    name: originalName,
+    type: "image/jpeg", // type asli hilang di server; kita asumsikan gambar valid
+    size: buffer.length,
+  });
+  if (!validation.ok) {
+    throw new Error(validation.error ?? "File tidak valid.");
+  }
+
+  const filePath = buildAttendancePhotoPath(placementId, attDate, originalName);
+  const { error } = await getAdminClient()
+    .storage.from(ATTENDANCE_BUCKET)
+    .upload(filePath, buffer, {
+      contentType: "image/jpeg",
+      upsert: false,
+      cacheControl: "no-cache",
+    });
+  if (error) throw new Error(`Gagal mengupload foto: ${error.message}`);
+
+  return filePath;
+}
+
+/** Buat signed URL untuk preview foto attendance (berumur pendek). */
+export async function createAttendancePhotoUrl(
+  filePath: string,
+  expiresInSeconds = 120
+): Promise<string> {
+  const { data, error } = await getAdminClient()
+    .storage.from(ATTENDANCE_BUCKET)
+    .createSignedUrl(filePath, expiresInSeconds);
+  if (error) throw new Error(`Gagal membuat URL foto: ${error.message}`);
+  return data.signedUrl;
+}

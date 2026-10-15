@@ -20,8 +20,10 @@ export function Button({
   className,
   asChild,
   children,
+  disabled,
   ...props
 }: Props) {
+  const disabledBool: boolean | undefined = disabled == null ? undefined : disabled === true;
   const Comp = (asChild ? "span" : "button") as React.ElementType;
   return (
     <Comp
@@ -31,6 +33,7 @@ export function Button({
         variants[variant],
         className
       )}
+      disabled={disabledBool}
       {...props}
     >
       {children}

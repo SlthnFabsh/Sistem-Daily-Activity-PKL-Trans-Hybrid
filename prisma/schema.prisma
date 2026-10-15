@@ -106,6 +106,10 @@ model Attendance {
   status      AttendanceStatus
   earlyLeave  Boolean          @default(false)
   note        String?
+  latitude    Float?
+  longitude   Float?
+  photoPath   String?
+  photoMime   String?
   placement   Placement        @relation(fields: [placementId], references: [id])
 
   @@unique([placementId, attDate]) // 1 data absensi per siswa per hari
