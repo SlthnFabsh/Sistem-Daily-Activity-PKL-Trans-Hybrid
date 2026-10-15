@@ -163,3 +163,59 @@ export async function deleteStudentLog(
   revalidatePath("/mentor/log");
   return { ok: true, message: "Log berhasil dihapus." };
 }
+
+// ─── Hapus SEMUA log milik 1 siswa (SUBMITTED + PENDING_REVIEW, oleh HRD) ───
+export async function deleteAllStudentLogs(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireRole("HRD");
+
+  const studentId = formData.get("studentId")?.toString().trim();
+  if (!studentId) {
+    return { ok: false, message: "ID siswa tidak valid." };
+  }
+
+  // Ambil placement aktif siswa
+  const placement = await prisma.placement.findFirst({
+    where: { studentId, status: PlacementStatus.ACTIVE },
+    select: { id: true },
+  });
+
+  if (!placement) {
+    return {
+      ok: false,
+      message: "Siswa tidak memiliki penempatan aktif.",
+    };
+  }
+
+  // Ambil semua log milik siswa (dua status yang bisa ditinjau di HRD)
+  const logs = await prisma.activityLog.findMany({
+    where: {
+      placementId: placement.id,
+      status: { in: [LogStatus.SUBMITTED, LogStatus.PENDING_REVIEW] },
+    },
+    include: { attachments: true },
+  });
+
+  if (logs.length === 0) {
+    return {
+      ok: true,
+      message: "Tidak ada log untuk siswa ini.",
+    };
+  }
+
+  for (const log of logs) {
+    for (const att of log.attachments) {
+      await deleteFileFromStorage(att.filePath).catch(() => {});
+    }
+    await prisma.activityLog.delete({ where: { id: log.id } });
+  }
+
+  revalidatePath("/hrd/log");
+  revalidatePath("/mentor/log");
+  return {
+    ok: true,
+    message: `Berhasil menghapus ${logs.length} log.`,
+  };
+}

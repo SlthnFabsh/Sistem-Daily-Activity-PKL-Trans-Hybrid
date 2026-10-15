@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  AlertTriangle,
   CheckCircle,
   Eye,
   Filter,
@@ -23,11 +24,74 @@ import { LogDetailModal } from "./log-detail-modal";
 import type { LogReviewItem, StudentOption } from "./types";
 import {
   approveImportedLogs,
+  deleteAllStudentLogs,
   deleteStudentLog,
   rejectImportedLog,
 } from "@/app/(app)/hrd/log/actions";
 
 const initialActionState: ActionResult = { ok: false };
+
+// ── Tombol hapus SEMUA log siswa (untuk log SUBMITTED di tangan HRD) ──────────
+function DeleteAllStudentLogsButton({
+  studentId,
+  studentName,
+  totalLogs,
+}: {
+  studentId: string;
+  studentName: string;
+  totalLogs: number;
+}) {
+  const [state, formAction, pending] = useActionForm(
+    deleteAllStudentLogs,
+    initialActionState
+  );
+  const [confirm, setConfirm] = useState(false);
+
+  if (confirm) {
+    return (
+      <div className="flex items-center gap-2">
+        {state.message && !state.ok && (
+          <span className="text-xs text-red-600">{state.message}</span>
+        )}
+        <form action={formAction}>
+          <input type="hidden" name="studentId" value={studentId} />
+          <Button
+            type="submit"
+            variant="danger"
+            disabled={pending}
+            className="text-xs"
+          >
+            {pending
+              ? "Menghapus..."
+              : `Ya, Hapus Semua (${totalLogs})`}
+          </Button>
+        </form>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setConfirm(false)}
+          className="text-xs"
+          disabled={pending}
+        >
+          Batal
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="danger"
+      onClick={() => setConfirm(true)}
+      className="text-xs"
+      disabled={pending}
+    >
+      <AlertTriangle className="h-3.5 w-3.5" />
+      Hapus Semua Log ({totalLogs})
+    </Button>
+  );
+}
 
 // ── Tombol hapus log (untuk log SUBMITTED di tangan HRD) ────────────────────
 function DeleteLogButton({ logId }: { logId: string }) {
@@ -317,6 +381,31 @@ export function LogReviewManager({
         </Card>
       )}
 
+      {/* Hapus Semua Log Siswa — hanya kalau filter menyaring 1 siswa */}
+      {activeTab === "submitted" &&
+        hasActiveFilter &&
+        activeFilters.studentId &&
+        activeFilters.studentId !== "all" &&
+        selectedStudentObj && (
+          <Card className="p-4 border-red-200 bg-red-50/40">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs text-text">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <span className="font-medium">Hapus Semua Log untuk Siswa Ini</span>
+              </div>
+              <DeleteAllStudentLogsButton
+                studentId={activeFilters.studentId}
+                studentName={selectedStudentObj.name}
+                totalLogs={logs.length}
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-text-muted">
+              Aksi ini akan menghapus seluruh log aktivitas terkirim dan lampiran
+              milik siswa terpilih. Tindakan ini bersifat permanen dan tidak dapat
+              dibatalkan.
+            </p>
+          </Card>
+        )}
       {/* ─── Tab: Log Terkirim ─────────────────────────────────────────── */}
       {activeTab === "submitted" && (
         <>
