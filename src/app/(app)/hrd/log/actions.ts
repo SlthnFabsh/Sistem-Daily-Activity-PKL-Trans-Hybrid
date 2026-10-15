@@ -2,18 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/permissions";
+import { requireAdminOrHrd } from "@/lib/permissions";
 import type { ImportResult, ActionResult } from "@/lib/action-result";
 import { processLogExcelImport } from "@/lib/log-import";
 import { PlacementStatus, LogStatus } from "@/generated/prisma/client";
 import { deleteFileFromStorage } from "@/lib/storage";
 
-// ─── Import log Excel untuk siswa tertentu (oleh HRD) ──────────────────────
+// ─── Import log Excel untuk siswa tertentu (oleh HRD & Superadmin) ──────────────────────
 export async function importStudentLogsByHrd(
   _prev: ImportResult,
   formData: FormData
 ): Promise<ImportResult> {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const studentId = formData.get("studentId")?.toString().trim();
   if (!studentId) {
@@ -75,7 +75,7 @@ export async function approveImportedLogs(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const studentId = formData.get("studentId")?.toString().trim();
   if (!studentId) {
@@ -107,7 +107,7 @@ export async function rejectImportedLog(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const logId = formData.get("logId")?.toString().trim();
   if (!logId) {
@@ -139,7 +139,7 @@ export async function deleteStudentLog(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const logId = formData.get("logId")?.toString().trim();
   if (!logId) {
@@ -169,7 +169,7 @@ export async function deleteAllStudentLogs(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const studentId = formData.get("studentId")?.toString().trim();
   if (!studentId) {

@@ -11,7 +11,7 @@ export async function saveDivision(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = divisionSchema.safeParse({ name: formData.get("name") });
@@ -39,7 +39,7 @@ export async function saveDivision(
 // Mencegah penghapusan yang mengganggu data lain: gagal bila divisi masih
 // dipakai pembimbing atau penempatan (termasuk riwayatnya).
 export async function deleteDivision(id: string): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const [mentors, placements] = await Promise.all([
     prisma.mentor.count({ where: { divisionId: id } }),

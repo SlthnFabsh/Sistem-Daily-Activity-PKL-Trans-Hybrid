@@ -11,7 +11,7 @@ import {
   deleteStudent,
   resetStudentPassword,
   importStudents,
-} from "./actions";
+} from "../../superadmin/siswa/actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,13 @@ const importInitialState: ImportResult = {
   rows: [],
 };
 
+export type StudentActions = {
+  save: typeof saveStudent;
+  delete: typeof deleteStudent;
+  resetPassword: typeof resetStudentPassword;
+  import: typeof importStudents;
+};
+
 export type StudentView = {
   id: string;
   name: string;
@@ -36,13 +43,26 @@ export type StudentView = {
   phone: string;
 };
 
-export function StudentManager({ students }: { students: StudentView[] }) {
+export function StudentManager({
+  students,
+  studentActions,
+}: {
+  students: StudentView[];
+  studentActions?: StudentActions;
+}) {
+  const actions = studentActions ?? {
+    save: saveStudent,
+    delete: deleteStudent,
+    resetPassword: resetStudentPassword,
+    import: importStudents,
+  };
+
   const router = useRouter();
   const [importKey, setImportKey] = useState(0);
   const [importDismissed, setImportDismissed] = useState(false);
-  const [state, formAction, pending] = useActionForm(saveStudent, initialState);
+  const [state, formAction, pending] = useActionForm(actions.save, initialState);
   const [importState, importAction, importPending] = useActionForm(
-    importStudents,
+    actions.import,
     importInitialState
   );
   const {
@@ -329,7 +349,7 @@ export function StudentManager({ students }: { students: StudentView[] }) {
                           className="px-3 py-1.5"
                           onClick={() =>
                             runAction(
-                              () => resetStudentPassword(s.id),
+                              () => actions.resetPassword(s.id),
                               "Reset password siswa ini?"
                             )
                           }
@@ -342,7 +362,7 @@ export function StudentManager({ students }: { students: StudentView[] }) {
                           className="px-3 py-1.5"
                           onClick={() =>
                             runAction(
-                              () => deleteStudent(s.id),
+                              () => actions.delete(s.id),
                               "Hapus siswa ini?"
                             )
                           }
@@ -376,14 +396,14 @@ export function StudentManager({ students }: { students: StudentView[] }) {
                       onClick={() => openEdit(s.id)}
                     >
                       <Pencil className="h-3.5 w-3.5" aria-hidden />
-                    </Button>
-                    <Button
+                    </Button>                    <Button
                       type="button"
                       variant="secondary"
                       className="px-2.5 py-1"
                       onClick={() =>
                         runAction(
-                          () => resetStudentPassword(s.id),
+                          () =>
+                            actions.resetPassword(s.id),
                           "Reset password siswa ini?"
                         )
                       }
@@ -395,7 +415,7 @@ export function StudentManager({ students }: { students: StudentView[] }) {
                       variant="danger"
                       className="px-2.5 py-1"
                       onClick={() =>
-                        runAction(() => deleteStudent(s.id), "Hapus siswa ini?")
+                        runAction(() => actions.delete(s.id), "Hapus siswa ini?")
                       }
                     >
                       <Trash2 className="h-3.5 w-3.5" aria-hidden />

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/permissions";
+import { requireAdminOrHrd } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   PlacementManager,
@@ -8,7 +8,7 @@ import {
 } from "./placement-manager";
 
 export default async function PenempatanPage() {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const [placements, students, periods, divisions] = await Promise.all([
     prisma.placement.findMany({

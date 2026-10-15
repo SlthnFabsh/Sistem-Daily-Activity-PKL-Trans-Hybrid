@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/permissions";
+import { requireAdminOrHrd } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { LaporanForm } from "@/components/laporan/laporan-form";
 
 export default async function HrdLaporanPage() {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   // HRD bisa pilih semua siswa
   const allStudents = await prisma.student.findMany({

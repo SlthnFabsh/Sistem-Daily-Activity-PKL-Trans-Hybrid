@@ -23,7 +23,17 @@ export function homePathForRole(role: Role): string {
       return "/mentor";
     case "HRD":
       return "/hrd";
+    case "SUPERADMIN":
+      return "/superadmin";
   }
+}
+
+export async function requireSuperAdmin(): Promise<SessionUser> {
+  return requireRole("SUPERADMIN");
+}
+
+export async function requireAdminOrHrd(): Promise<SessionUser> {
+  return requireRole(["SUPERADMIN", "HRD"]);
 }
 
 /** Mengharuskan pengguna sudah login dan mengembalikan data sesinya. */
@@ -48,13 +58,13 @@ export async function requireRole(allowed: Role | Role[]): Promise<SessionUser> 
 
 /**
  * Cek apakah aktor boleh melihat data siswa tertentu.
- * STUDENT hanya miliknya sendiri, MENTOR hanya siswa di divisinya, HRD semua.
+ * SUPERADMIN & HRD semua, MENTOR hanya siswa di divisinya, STUDENT milik sendiri.
  */
 export async function canViewStudent(
   actor: SessionUser,
   studentId: string
 ): Promise<boolean> {
-  if (actor.role === "HRD") return true;
+  if (actor.role === "SUPERADMIN" || actor.role === "HRD") return true;
 
   if (actor.role === "MENTOR") {
     const mentor = await prisma.mentor.findUnique({

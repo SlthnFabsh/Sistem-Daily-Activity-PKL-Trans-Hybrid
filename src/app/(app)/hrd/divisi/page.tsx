@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DivisionManager } from "./division-manager";
 
 export default async function DivisiPage() {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const divisions = await prisma.division.findMany({
     orderBy: { name: "asc" },

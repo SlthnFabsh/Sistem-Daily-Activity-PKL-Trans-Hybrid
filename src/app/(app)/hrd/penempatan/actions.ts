@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/permissions";
+import { requireAdminOrHrd } from "@/lib/permissions";
 import { placementSchema } from "@/lib/validations";
 import { toFieldErrors, type ActionResult } from "@/lib/action-result";
 
@@ -11,7 +11,7 @@ export async function savePlacement(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = placementSchema.safeParse({
@@ -57,7 +57,7 @@ export async function savePlacement(
 }
 
 export async function deletePlacement(id: string): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   const [attendances, logs] = await Promise.all([
     prisma.attendance.count({ where: { placementId: id } }),

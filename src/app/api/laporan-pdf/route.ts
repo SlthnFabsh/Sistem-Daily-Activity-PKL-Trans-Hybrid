@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
       );
     }
   }
-  // HRD: akses semua, tidak perlu cek tambahan
+  // HRD & SUPERADMIN: akses semua, tidak perlu cek tambahan
 
   const placement = student.placements[0];
 

@@ -23,12 +23,12 @@ async function findOtherPic(divisionId: string, excludeMentorId?: string) {
 }
 
 // Membuat atau memperbarui pembimbing. Bila ada `id` berarti edit.
-// Passwor selalu memakai TEMP_PASSWORD; HRD bisa mereset lewat tombol terpisah.
+// Password selalu memakai TEMP_PASSWORD; superadmin bisa mereset lewat tombol terpisah.
 export async function saveMentor(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = mentorSchema.safeParse({
@@ -84,7 +84,7 @@ export async function saveMentor(
     throw error;
   }
 
-  revalidatePath("/hrd/pengguna");
+  revalidatePath("/superadmin/pengguna");
   return {
     ok: true,
     message: id
@@ -94,7 +94,7 @@ export async function saveMentor(
 }
 
 export async function deleteMentor(id: string): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const mentor = await prisma.mentor.findUnique({ where: { id } });
   if (!mentor) return { ok: false, message: "Pembimbing tidak ditemukan." };
@@ -104,12 +104,12 @@ export async function deleteMentor(id: string): Promise<ActionResult> {
     prisma.user.delete({ where: { id: mentor.userId } }),
   ]);
 
-  revalidatePath("/hrd/pengguna");
+  revalidatePath("/superadmin/pengguna");
   return { ok: true, message: "Pembimbing dihapus." };
 }
 
 export async function resetMentorPassword(id: string): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const mentor = await prisma.mentor.findUnique({
     where: { id },
@@ -123,9 +123,116 @@ export async function resetMentorPassword(id: string): Promise<ActionResult> {
     data: { passwordHash },
   });
 
-  revalidatePath("/hrd/pengguna");
+  revalidatePath("/superadmin/pengguna");
   return {
     ok: true,
     message: `Password ${mentor.user.name} direset menjadi: ${TEMP_PASSWORD}`,
+  };
+}
+
+// Membuat atau memperbarui HRD. Bila ada `id` berarti edit.
+export async function saveHrd(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireRole("SUPERADMIN");
+
+  const id = formData.get("id")?.toString().trim() ?? "";
+  const parsed = mentorSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { ok: false, fieldErrors: toFieldErrors(parsed.error) };
+  }
+
+  const { name, email } = parsed.data;
+
+  try {
+    if (id) {
+      const hrd = await prisma.user.findFirst({
+        where: { role: "HRD", mentor: null },
+        select: { id: true },
+      });
+      // hrd yang sedang diedit boleh tidak dihitung
+      if (hrd && hrd.id !== id) {
+        return { ok: false, message: "Sudah ada akun HRD. Hapus atau edit yang ada." };
+      }
+      const user = await prisma.user.findUnique({ where: { id } });
+      if (!user || user.role !== "HRD") return { ok: false, message: "Akun HRD tidak ditemukan." };
+      await prisma.user.update({
+        where: { id },
+        data: { name, email },
+      });
+    } else {
+      const passwordHash = await hash(TEMP_PASSWORD, SALT_ROUNDS);
+      const existing = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (existing) {
+        return { ok: false, fieldErrors: { email: ["Email sudah terdaftar."] } };
+      }
+      await prisma.user.create({
+        data: { name, email, passwordHash, role: "HRD" },
+      });
+    }
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return { ok: false, fieldErrors: { email: ["Email sudah terdaftar."] } };
+    }
+    throw error;
+  }
+
+  revalidatePath("/superadmin/pengguna");
+  return {
+    ok: true,
+    message: id ? "HRD diperbarui." : `HRD dibuat. Password sementara: ${TEMP_PASSWORD}`,
+  };
+}
+
+export async function deleteHrd(id: string): Promise<ActionResult> {
+  await requireRole("SUPERADMIN");
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true },
+  });
+  if (!user || user.role !== "HRD") {
+    return { ok: false, message: "Akun HRD tidak ditemukan." };
+  }
+
+  const count = await prisma.user.count({ where: { role: "HRD" } });
+  if (count <= 1) {
+    return { ok: false, message: "Tidak bisa menghapus satu-satunya akun HRD." };
+  }
+
+  await prisma.user.delete({ where: { id } });
+
+  revalidatePath("/superadmin/pengguna");
+  return { ok: true, message: "HRD dihapus." };
+}
+
+export async function resetHrdPassword(id: string): Promise<ActionResult> {
+  await requireRole("SUPERADMIN");
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true, name: true },
+  });
+  if (!user || user.role !== "HRD") {
+    return { ok: false, message: "Akun HRD tidak ditemukan." };
+  }
+
+  const passwordHash = await hash(TEMP_PASSWORD, SALT_ROUNDS);
+  await prisma.user.update({
+    where: { id },
+    data: { passwordHash },
+  });
+
+  revalidatePath("/superadmin/pengguna");
+  return {
+    ok: true,
+    message: `Password ${user.name} direset menjadi: ${TEMP_PASSWORD}`,
   };
 }

@@ -3,6 +3,7 @@ import {
   CalendarCheck,
   CalendarRange,
   ClipboardList,
+  Eye,
   FileText,
   GraduationCap,
   History,
@@ -26,6 +27,7 @@ export const iconMap: Record<string, LucideIcon> = {
   "calendar-range": CalendarRange,
   "graduation-cap": GraduationCap,
   "map-pin": MapPin,
+  eye: Eye,
 };
 
 export const NAV_ITEMS: Record<Role, NavItem[]> = {
@@ -40,10 +42,17 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/mentor/laporan", label: "Laporan", icon: "file-text" },
   ],
   HRD: [
-    { href: "/hrd/pengguna", label: "Pengguna", icon: "users" },
+    { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
+    { href: "/hrd/log", label: "Log Siswa", icon: "clipboard-list" },
+    { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
+    { href: "/hrd/pic", label: "Lihat PIC", icon: "users" },
+    { href: "/hrd/siswa", label: "Lihat Siswa", icon: "graduation-cap" },
+  ],
+  SUPERADMIN: [
+    { href: "/superadmin/pengguna", label: "Pengguna", icon: "users" },
+    { href: "/superadmin/siswa", label: "Siswa", icon: "graduation-cap" },
     { href: "/hrd/divisi", label: "Divisi", icon: "building-2" },
     { href: "/hrd/periode", label: "Periode", icon: "calendar-range" },
-    { href: "/hrd/siswa", label: "Siswa", icon: "graduation-cap" },
     { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
     { href: "/hrd/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
@@ -58,5 +67,7 @@ export function roleLabel(role: Role): string {
       return "Pembimbing";
     case "HRD":
       return "HRD";
+    case "SUPERADMIN":
+      return "Superadmin";
   }
 }

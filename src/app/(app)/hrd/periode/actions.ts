@@ -15,7 +15,7 @@ export async function savePeriod(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = periodSchema.safeParse({
@@ -44,7 +44,7 @@ export async function savePeriod(
 }
 
 export async function deletePeriod(id: string): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const placements = await prisma.placement.count({ where: { periodId: id } });
   if (placements > 0) {

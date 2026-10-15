@@ -10,6 +10,7 @@ import {
 
 const SEED_PASSWORD = "Pkl@2026";
 
+const SUPERADMIN_EMAIL = "superadmin@transhybrid.com";
 const HRD_EMAIL = "hrd@transhybrid.com";
 const MENTOR_1_EMAIL = "pembimbing1@transhybrid.com";
 const MENTOR_2_EMAIL = "pembimbing2@transhybrid.com";
@@ -42,6 +43,17 @@ async function main() {
       name: "Dinda Putri",
       passwordHash,
       role: Role.HRD,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: SUPERADMIN_EMAIL },
+    update: { passwordHash },
+    create: {
+      email: SUPERADMIN_EMAIL,
+      name: "Superadmin",
+      passwordHash,
+      role: Role.SUPERADMIN,
     },
   });
 

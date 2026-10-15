@@ -22,7 +22,7 @@ export async function saveStudent(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = studentSchema.safeParse({
@@ -64,7 +64,14 @@ export async function saveStudent(
           data: { name, email, passwordHash, role: "STUDENT" },
         });
         await tx.student.create({
-          data: { userId: user.id, nis, schoolName, major, className, phone },
+          data: {
+            userId: user.id,
+            nis,
+            schoolName,
+            major,
+            className,
+            phone,
+          },
         });
       });
     }
@@ -75,7 +82,7 @@ export async function saveStudent(
     throw error;
   }
 
-  revalidatePath("/hrd/siswa");
+  revalidatePath("/superadmin/siswa");
   return {
     ok: true,
     message: id
@@ -85,7 +92,7 @@ export async function saveStudent(
 }
 
 export async function deleteStudent(id: string): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const student = await prisma.student.findUnique({
     where: { id },
@@ -106,12 +113,12 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
     prisma.user.delete({ where: { id: student.userId } }),
   ]);
 
-  revalidatePath("/hrd/siswa");
+  revalidatePath("/superadmin/siswa");
   return { ok: true, message: "Siswa dihapus." };
 }
 
 export async function resetStudentPassword(id: string): Promise<ActionResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const student = await prisma.student.findUnique({
     where: { id },
@@ -125,7 +132,7 @@ export async function resetStudentPassword(id: string): Promise<ActionResult> {
     data: { passwordHash },
   });
 
-  revalidatePath("/hrd/siswa");
+  revalidatePath("/superadmin/siswa");
   return {
     ok: true,
     message: `Password ${student.user.name} direset menjadi: ${TEMP_PASSWORD}`,
@@ -155,14 +162,14 @@ export async function importStudents(
   _prev: ImportResult,
   formData: FormData
 ): Promise<ImportResult> {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const file = formData.get("file");
   if (!file || typeof (file as File).arrayBuffer !== "function") {
     return failImport("File wajib dipilih.");
   }
   const upload = file as File;
-  if (!/\.(xlsx|xls)$/i.test(upload.name)) {
+  if (!/\\.(xlsx|xls)$/i.test(upload.name)) {
     return failImport("Format file harus .xlsx atau .xls.");
   }
   if (upload.size > MAX_IMPORT_BYTES) {
@@ -233,7 +240,12 @@ export async function importStudents(
       const passwordHash = await hash(TEMP_PASSWORD, SALT_ROUNDS);
       await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
-          data: { name: data.name, email: data.email, passwordHash, role: "STUDENT" },
+          data: {
+            name: data.name,
+            email: data.email,
+            passwordHash,
+            role: "STUDENT",
+          },
         });
         await tx.student.create({
           data: {
@@ -261,7 +273,7 @@ export async function importStudents(
     }
   }
 
-  revalidatePath("/hrd/siswa");
+  revalidatePath("/superadmin/siswa");
   return {
     ok: true,
     imported,

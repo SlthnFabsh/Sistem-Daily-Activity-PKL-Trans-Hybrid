@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/permissions";
+import { requireAdminOrHrd } from "@/lib/permissions";
 import { formatWibDate, formatWibTime } from "@/lib/time";
 import { LogStatus } from "@/generated/prisma/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -21,7 +21,7 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 export default async function HrdLogPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await requireRole("HRD");
+  await requireAdminOrHrd();
 
   // Ambil parameter filter dari query URL
   const search = await props.searchParams;

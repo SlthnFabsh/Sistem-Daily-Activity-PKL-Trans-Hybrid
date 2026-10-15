@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { KeyRound, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
 import { useActionFeedback } from "@/lib/use-action-feedback";
-import { saveMentor, deleteMentor, resetMentorPassword } from "./actions";
+import { saveMentor, deleteMentor, resetMentorPassword } from "../../superadmin/pengguna/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,15 +26,29 @@ export type MentorView = {
 
 export type DivisionOption = { id: string; name: string };
 
+export type MentorActions = {
+  save: typeof saveMentor;
+  delete: typeof deleteMentor;
+  resetPassword: typeof resetMentorPassword;
+};
+
 export function MentorManager({
   mentors,
   divisions,
+  mentorActions,
 }: {
   mentors: MentorView[];
   divisions: DivisionOption[];
+  mentorActions?: MentorActions;
 }) {
+  const actions = mentorActions ?? {
+    save: saveMentor,
+    delete: deleteMentor,
+    resetPassword: resetMentorPassword,
+  };
+
   const router = useRouter();
-  const [state, formAction, pending] = useActionForm(saveMentor, initialState);
+  const [state, formAction, pending] = useActionForm(actions.save, initialState);
   const {
     notice,
     error,
@@ -204,7 +218,7 @@ export function MentorManager({
                           className="px-3 py-1.5"
                           onClick={() =>
                             runAction(
-                              () => resetMentorPassword(m.id),
+                              () => actions.resetPassword(m.id),
                               "Reset password pembimbing ini?"
                             )
                           }
@@ -217,7 +231,7 @@ export function MentorManager({
                           className="px-3 py-1.5"
                           onClick={() =>
                             runAction(
-                              () => deleteMentor(m.id),
+                              () => actions.delete(m.id),
                               "Hapus pembimbing ini?"
                             )
                           }
@@ -260,7 +274,7 @@ export function MentorManager({
                       className="px-2.5 py-1"
                       onClick={() =>
                         runAction(
-                          () => resetMentorPassword(m.id),
+                          () => actions.resetPassword(m.id),
                           "Reset password pembimbing ini?"
                         )
                       }
@@ -273,7 +287,7 @@ export function MentorManager({
                       className="px-2.5 py-1"
                       onClick={() =>
                         runAction(
-                          () => deleteMentor(m.id),
+                          () => actions.delete(m.id),
                           "Hapus pembimbing ini?"
                         )
                       }

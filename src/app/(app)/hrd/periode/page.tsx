@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PeriodManager, type PeriodView } from "./period-manager";
 
 export default async function PeriodePage() {
-  await requireRole("HRD");
+  await requireRole("SUPERADMIN");
 
   const periods = await prisma.pklPeriod.findMany({
     orderBy: { startDate: "desc" },
