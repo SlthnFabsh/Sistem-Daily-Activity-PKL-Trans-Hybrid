@@ -2,6 +2,7 @@ import { read, utils, type WorkBook, type WorkSheet } from "xlsx";
 import { prisma } from "@/lib/db";
 import { isDateInPeriod } from "@/lib/attendance";
 import { importLogRowSchema } from "@/lib/validations";
+import { LogStatus } from "@/generated/prisma/client";
 import type { ImportResult, ImportRowResult } from "@/lib/action-result";
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -259,7 +260,7 @@ export async function processLogExcelImport({
         description: data.description,
         output: data.output || null,
         obstacle: data.obstacle || null,
-        status: "PENDING_REVIEW",
+        status: LogStatus.PENDING_REVIEW,
         submittedAt: new Date(),
       },
     });

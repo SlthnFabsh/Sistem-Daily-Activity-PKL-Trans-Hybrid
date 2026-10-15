@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/permissions";
 import type { ImportResult, ActionResult } from "@/lib/action-result";
 import { processLogExcelImport } from "@/lib/log-import";
-import { PlacementStatus } from "@/generated/prisma/client";
+import { PlacementStatus, LogStatus } from "@/generated/prisma/client";
 import { deleteFileFromStorage } from "@/lib/storage";
 
 // ─── Import log Excel untuk siswa tertentu (oleh HRD) ──────────────────────
@@ -91,8 +91,8 @@ export async function approveImportedLogs(
   }
 
   const { count } = await prisma.activityLog.updateMany({
-    where: { placementId: placement.id, status: "PENDING_REVIEW" },
-    data: { status: "SUBMITTED", submittedAt: new Date() },
+    where: { placementId: placement.id, status: LogStatus.PENDING_REVIEW },
+    data: { status: LogStatus.SUBMITTED, submittedAt: new Date() },
   });
 
   revalidatePath("/hrd/log");
@@ -121,7 +121,7 @@ export async function rejectImportedLog(
   if (!log) {
     return { ok: false, message: "Log tidak ditemukan." };
   }
-  if (log.status !== "PENDING_REVIEW") {
+  if (log.status !== LogStatus.PENDING_REVIEW) {
     return { ok: false, message: "Hanya log 'Menunggu Persetujuan' yang bisa ditolak." };
   }
 

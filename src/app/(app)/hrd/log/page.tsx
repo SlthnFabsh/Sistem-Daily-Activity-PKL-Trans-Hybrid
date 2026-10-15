@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/permissions";
 import { formatWibDate, formatWibTime } from "@/lib/time";
+import { LogStatus } from "@/generated/prisma/client";
 import { PageHeader } from "@/components/ui/page-header";
 import { LogReviewManager } from "@/components/log-review/log-review-manager";
 import { HrdImportTrigger } from "@/components/log/hrd-import-trigger";
@@ -81,7 +82,7 @@ export default async function HrdLogPage(props: {
     }),
     prisma.activityLog.findMany({
       where: {
-        status: "SUBMITTED",
+        status: LogStatus.SUBMITTED,
         ...(placementFilter ? { placement: placementFilter } : {}),
         ...(logDateFilter ? { logDate: logDateFilter } : {}),
       },
@@ -91,7 +92,7 @@ export default async function HrdLogPage(props: {
     // PENDING_REVIEW: semua tanpa filter tanggal, tapi bisa filter per siswa
     prisma.activityLog.findMany({
       where: {
-        status: "PENDING_REVIEW",
+        status: LogStatus.PENDING_REVIEW,
         ...(placementFilter ? { placement: placementFilter } : {}),
       },
       include: includeClause,
@@ -106,8 +107,38 @@ export default async function HrdLogPage(props: {
     divisionName: s.placements[0]?.division.name,
   }));
 
+  type LogWithRelations = {
+    id: string;
+    logDate: Date;
+    startTime: string;
+    endTime: string;
+    taskFrom: string;
+    description: string;
+    output: string | null;
+    obstacle: string | null;
+    submittedAt: Date | null;
+    placementId: string;
+    attachments: {
+      id: string;
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+    }[];
+    placement: {
+      studentId: string;
+      student: {
+        nis: string | null;
+        schoolName: string;
+        className: string | null;
+        major: string | null;
+        user: { name: string };
+      };
+      division: { name: string };
+    };
+  };
+
   function toViewItem(
-    l: (typeof submittedLogs)[number],
+    l: LogWithRelations,
     status: "SUBMITTED" | "PENDING_REVIEW"
   ): LogReviewItem {
     return {
@@ -146,6 +177,7 @@ export default async function HrdLogPage(props: {
 
   const submittedItems = submittedLogs.map((l) => toViewItem(l, "SUBMITTED"));
   const pendingItems = pendingLogs.map((l) => toViewItem(l, "PENDING_REVIEW"));
+
 
   // Kelompokkan pending per siswa (untuk tombol Setujui Semua)
   const pendingByStudent = new Map<string, { studentId: string; studentName: string; count: number }>();

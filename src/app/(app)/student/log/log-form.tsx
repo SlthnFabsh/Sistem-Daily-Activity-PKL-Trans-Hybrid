@@ -247,7 +247,7 @@ export function LogForm({
             <p className="text-xs text-blue-700">
               Log ini sudah terkirim tapi masih bisa diedit sebelum Anda absen
               pulang. Klik{" "}
-              <strong>"Perbarui Log"</strong> untuk menyimpan perubahan.
+              <strong>&ldquo;Perbarui Log&rdquo;</strong> untuk menyimpan perubahan.
             </p>
           </div>
         )}

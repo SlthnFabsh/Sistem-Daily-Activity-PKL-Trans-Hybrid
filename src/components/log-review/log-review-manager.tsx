@@ -97,9 +97,11 @@ function ApproveAllButton({
   return (
     <div>
       {state.message && (
-        <Notice tone={state.ok ? "info" : "error"} className="mb-2 text-xs">
-          {state.message}
-        </Notice>
+        <div className="mb-2">
+          <Notice tone={state.ok ? "info" : "error"}>
+            {state.message}
+          </Notice>
+        </div>
       )}
       <form action={formAction} className="flex items-center gap-2">
         <input type="hidden" name="studentId" value={studentId} />

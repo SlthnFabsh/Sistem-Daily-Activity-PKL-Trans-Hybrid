@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/alt-text */
 // Template dokumen PDF laporan PKL menggunakan @react-pdf/renderer.
 // File ini berjalan di server (route handler) — tidak ada browser API.
 // Komponen React di sini menggunakan primitif PDF (View, Text, Page, Document)
