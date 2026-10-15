@@ -36,6 +36,45 @@ export async function requireAdminOrHrd(): Promise<SessionUser> {
   return requireRole(["SUPERADMIN", "HRD"]);
 }
 
+/** Buat token acak untuk reset password. */
+export function generateResetToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Cek apakah token reset masih berlaku (masih PENDING dan belum lebih dari 24 jam). */
+export async function isResetTokenValid(
+  token: string
+): Promise<{ valid: boolean; request?: {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+} }> {
+  const request = await prisma.passwordResetRequest.findFirst({
+    where: { token, status: "PENDING" },
+    include: { user: { select: { email: true, name: true, role: true } } },
+  });
+  if (!request) return { valid: false };
+  const age = Date.now() - request.requestedAt.getTime();
+  if (age > 24 * 60 * 60 * 1000) {
+    await prisma.passwordResetRequest.update({
+      where: { id: request.id },
+      data: { status: "EXPIRED" },
+    });
+    return { valid: false };
+  }
+  return { valid: true, request: {
+    id: request.id,
+    userId: request.userId,
+    email: request.user.email,
+    name: request.user.name,
+    role: request.user.role,
+  }};
+}
+
 /** Mengharuskan pengguna sudah login dan mengembalikan data sesinya. */
 export async function requireUser(): Promise<SessionUser> {
   const session = await getCachedSession();

@@ -7,6 +7,7 @@ import {
   FileText,
   GraduationCap,
   History,
+  KeyRound,
   MapPin,
   Users,
   type LucideIcon,
@@ -28,6 +29,7 @@ export const iconMap: Record<string, LucideIcon> = {
   "graduation-cap": GraduationCap,
   "map-pin": MapPin,
   eye: Eye,
+  "key-round": KeyRound,
 };
 
 export const NAV_ITEMS: Record<Role, NavItem[]> = {
@@ -36,10 +38,12 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/student/log", label: "Log Aktivitas", icon: "clipboard-list" },
     { href: "/student/riwayat", label: "Riwayat", icon: "history" },
     { href: "/student/laporan", label: "Laporan", icon: "file-text" },
+    { href: "/settings/password", label: "Ganti Password", icon: "key-round" },
   ],
   MENTOR: [
     { href: "/mentor/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/mentor/laporan", label: "Laporan", icon: "file-text" },
+    { href: "/settings/password", label: "Ganti Password", icon: "key-round" },
   ],
   HRD: [
     { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
@@ -47,6 +51,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
     { href: "/hrd/pic", label: "Lihat PIC", icon: "users" },
     { href: "/hrd/siswa", label: "Lihat Siswa", icon: "graduation-cap" },
+    { href: "/settings/password", label: "Ganti Password", icon: "key-round" },
   ],
   SUPERADMIN: [
     { href: "/superadmin/pengguna", label: "Pengguna", icon: "users" },
@@ -56,6 +61,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
     { href: "/hrd/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
+    { href: "/superadmin/password-requests", label: "Reset Password (Pengguna)", icon: "key-round" },
   ],
 };
 

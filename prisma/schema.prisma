@@ -41,6 +41,7 @@ model User {
   isActive     Boolean  @default(true)
   student      Student?
   mentor       Mentor?
+  passwordResetRequests PasswordResetRequest[]
 }
 
 model Student {
@@ -135,4 +136,15 @@ model LogAttachment {
   fileSize   Int
   uploadedAt DateTime    @default(now())
   log        ActivityLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetRequest {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  token              String   @unique @default(cuid())
+  requestedAt        DateTime @default(now())
+  fulfilledAt        DateTime?
+  newPasswordHash    String?
+  status             String   @default("PENDING") // PENDING, FULFILLED, EXPIRED
 }

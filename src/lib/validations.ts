@@ -159,3 +159,38 @@ export const importLogRowSchema = z
       });
     }
   });
+
+// Skema ganti password oleh pengguna sendiri.
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Password lama wajib diisi."),
+    newPassword: z
+      .string()
+      .min(8, "Password baru minimal 8 karakter.")
+      .max(128, "Password baru maksimal 128 karakter."),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi."),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Konfirmasi password tidak cocok.",
+    path: ["confirmPassword"],
+  });
+
+// Skema permintaan reset password (oleh pengguna non-superadmin).
+export const requestResetSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Format email tidak valid."),
+});
+
+// Skema penetapan ulang password oleh superadmin (memakai token).
+export const setPasswordSchema = z
+  .object({
+    token: z.string().min(1, "Token wajib diisi."),
+    newPassword: z
+      .string()
+      .min(8, "Password baru minimal 8 karakter.")
+      .max(128, "Password baru maksimal 128 karakter."),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi."),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Konfirmasi password tidak cocok.",
+    path: ["confirmPassword"],
+  });
