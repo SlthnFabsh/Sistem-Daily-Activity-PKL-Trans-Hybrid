@@ -36,32 +36,38 @@ export default async function HrdLogPage(props: {
   const validToDate =
     rawToDate && DATE_REGEX.test(rawToDate) ? rawToDate : undefined;
 
-  // HRD melihat log SEMUA siswa; filter opsional
-  const whereClause: {
-    status: "SUBMITTED";
-    placement?: { studentId?: string };
-    logDate?: { gte?: Date; lte?: Date };
-  } = {
-    status: "SUBMITTED",
-  };
+  // Shared where clause tanpa status filter
+  const placementFilter =
+    rawStudentId && rawStudentId !== "all"
+      ? { studentId: rawStudentId }
+      : undefined;
 
-  if (rawStudentId && rawStudentId !== "all") {
-    whereClause.placement = { studentId: rawStudentId };
-  }
+  const logDateFilter =
+    validFromDate || validToDate
+      ? {
+          ...(validFromDate
+            ? { gte: new Date(`${validFromDate}T00:00:00.000Z`) }
+            : {}),
+          ...(validToDate
+            ? { lte: new Date(`${validToDate}T00:00:00.000Z`) }
+            : {}),
+        }
+      : undefined;
 
-  if (validFromDate || validToDate) {
-    whereClause.logDate = {
-      ...(validFromDate
-        ? { gte: new Date(`${validFromDate}T00:00:00.000Z`) }
-        : {}),
-      ...(validToDate
-        ? { lte: new Date(`${validToDate}T00:00:00.000Z`) }
-        : {}),
-    };
-  }
+  const includeClause = {
+    attachments: true,
+    placement: {
+      include: {
+        student: {
+          include: { user: { select: { name: true } } },
+        },
+        division: { select: { name: true } },
+      },
+    },
+  } as const;
 
-  // Jalankan query siswa dan log secara paralel
-  const [allStudents, logs] = await Promise.all([
+  // Jalankan query siswa, log SUBMITTED, dan log PENDING_REVIEW secara paralel
+  const [allStudents, submittedLogs, pendingLogs] = await Promise.all([
     prisma.student.findMany({
       include: {
         user: { select: { name: true } },
@@ -74,19 +80,22 @@ export default async function HrdLogPage(props: {
       orderBy: { user: { name: "asc" } },
     }),
     prisma.activityLog.findMany({
-      where: whereClause,
-      include: {
-        attachments: true,
-        placement: {
-          include: {
-            student: {
-              include: { user: { select: { name: true } } },
-            },
-            division: { select: { name: true } },
-          },
-        },
+      where: {
+        status: "SUBMITTED",
+        ...(placementFilter ? { placement: placementFilter } : {}),
+        ...(logDateFilter ? { logDate: logDateFilter } : {}),
       },
+      include: includeClause,
       orderBy: [{ logDate: "desc" }, { submittedAt: "desc" }],
+    }),
+    // PENDING_REVIEW: semua tanpa filter tanggal, tapi bisa filter per siswa
+    prisma.activityLog.findMany({
+      where: {
+        status: "PENDING_REVIEW",
+        ...(placementFilter ? { placement: placementFilter } : {}),
+      },
+      include: includeClause,
+      orderBy: [{ placement: { student: { user: { name: "asc" } } } }, { logDate: "asc" }],
     }),
   ]);
 
@@ -97,38 +106,61 @@ export default async function HrdLogPage(props: {
     divisionName: s.placements[0]?.division.name,
   }));
 
-  const viewItems: LogReviewItem[] = logs.map((l) => ({
-    id: l.id,
-    logDate: l.logDate.toISOString(),
-    formattedDate: formatWibDate(l.logDate),
-    startTime: l.startTime,
-    endTime: l.endTime,
-    taskFrom: l.taskFrom,
-    description: l.description,
-    output: l.output,
-    obstacle: l.obstacle,
-    status: "SUBMITTED",
-    submittedAt: l.submittedAt ? l.submittedAt.toISOString() : null,
-    formattedSubmittedAt: l.submittedAt
-      ? `${formatWibDate(l.submittedAt)} pukul ${formatWibTime(l.submittedAt)}`
-      : null,
-    student: {
-      id: l.placement.studentId,
-      name: l.placement.student.user.name,
-      nis: l.placement.student.nis,
-      schoolName: l.placement.student.schoolName,
-      className: l.placement.student.className,
-      major: l.placement.student.major,
-      divisionName: l.placement.division.name,
-    },
-    attachments: l.attachments.map((a) => ({
-      id: a.id,
-      fileName: a.fileName,
-      fileType: a.fileType,
-      fileSize: a.fileSize,
-      formattedSize: formatFileSize(a.fileSize),
-    })),
-  }));
+  function toViewItem(
+    l: (typeof submittedLogs)[number],
+    status: "SUBMITTED" | "PENDING_REVIEW"
+  ): LogReviewItem {
+    return {
+      id: l.id,
+      logDate: l.logDate.toISOString(),
+      formattedDate: formatWibDate(l.logDate),
+      startTime: l.startTime,
+      endTime: l.endTime,
+      taskFrom: l.taskFrom,
+      description: l.description,
+      output: l.output,
+      obstacle: l.obstacle,
+      status,
+      submittedAt: l.submittedAt ? l.submittedAt.toISOString() : null,
+      formattedSubmittedAt: l.submittedAt
+        ? `${formatWibDate(l.submittedAt)} pukul ${formatWibTime(l.submittedAt)}`
+        : null,
+      student: {
+        id: l.placement.studentId,
+        name: l.placement.student.user.name,
+        nis: l.placement.student.nis,
+        schoolName: l.placement.student.schoolName,
+        className: l.placement.student.className,
+        major: l.placement.student.major,
+        divisionName: l.placement.division.name,
+      },
+      attachments: l.attachments.map((a) => ({
+        id: a.id,
+        fileName: a.fileName,
+        fileType: a.fileType,
+        fileSize: a.fileSize,
+        formattedSize: formatFileSize(a.fileSize),
+      })),
+    };
+  }
+
+  const submittedItems = submittedLogs.map((l) => toViewItem(l, "SUBMITTED"));
+  const pendingItems = pendingLogs.map((l) => toViewItem(l, "PENDING_REVIEW"));
+
+  // Kelompokkan pending per siswa (untuk tombol Setujui Semua)
+  const pendingByStudent = new Map<string, { studentId: string; studentName: string; count: number }>();
+  for (const item of pendingItems) {
+    const existing = pendingByStudent.get(item.student.id);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      pendingByStudent.set(item.student.id, {
+        studentId: item.student.id,
+        studentName: item.student.name,
+        count: 1,
+      });
+    }
+  }
 
   return (
     <>
@@ -138,7 +170,9 @@ export default async function HrdLogPage(props: {
         action={<HrdImportTrigger students={studentOptions} />}
       />
       <LogReviewManager
-        logs={viewItems}
+        logs={submittedItems}
+        pendingLogs={pendingItems}
+        pendingByStudent={Array.from(pendingByStudent.values())}
         students={studentOptions}
         activeFilters={{
           studentId: rawStudentId,

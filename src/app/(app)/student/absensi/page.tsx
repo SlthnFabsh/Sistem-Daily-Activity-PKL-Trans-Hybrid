@@ -55,7 +55,7 @@ export default async function AbsensiPage() {
     Date.UTC(month === 12 ? year + 1 : year, month === 12 ? 0 : month, 1)
   );
 
-  const [todayRow, monthRows] = await Promise.all([
+  const [todayRow, monthRows, logToday] = await Promise.all([
     prisma.attendance.findUnique({
       where: {
         placementId_attDate: { placementId: placement.id, attDate: todayWib() },
@@ -67,6 +67,15 @@ export default async function AbsensiPage() {
         attDate: { gte: monthStart, lt: monthEnd },
       },
       orderBy: { attDate: "desc" },
+    }),
+    // Cek apakah sudah ada log SUBMITTED hari ini
+    prisma.activityLog.findFirst({
+      where: {
+        placementId: placement.id,
+        logDate: todayWib(),
+        status: "SUBMITTED",
+      },
+      select: { id: true },
     }),
   ]);
 
@@ -84,6 +93,7 @@ export default async function AbsensiPage() {
           workStart={placement.workStart}
           workEnd={placement.workEnd}
           today={todayRow ? toView(todayRow) : null}
+          hasLogToday={!!logToday}
         />
 
         <section>

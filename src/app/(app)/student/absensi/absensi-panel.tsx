@@ -32,12 +32,14 @@ export function AbsensiPanel({
   workStart,
   workEnd,
   today,
+  hasLogToday,
 }: {
   todayLabel: string;
   divisionName: string;
   workStart: string;
   workEnd: string;
   today: AttendanceView | null;
+  hasLogToday: boolean;
 }) {
   const [inState, inAction, inPending] = useActionForm(checkIn, initialState);
   const [outState, outAction, outPending] = useActionForm(checkOut, initialState);
@@ -47,6 +49,7 @@ export function AbsensiPanel({
   );
 
   const isPresent = today?.status === "HADIR" || today?.status === "TERLAMBAT";
+
 
   return (
     <Card className="p-4">
@@ -58,9 +61,6 @@ export function AbsensiPanel({
       <div className="mt-3 space-y-2">
         {inState.message && (
           <Notice tone={inState.ok ? "info" : "error"}>{inState.message}</Notice>
-        )}
-        {outState.message && (
-          <Notice tone={outState.ok ? "info" : "error"}>{outState.message}</Notice>
         )}
         {leaveState.message && (
           <Notice tone={leaveState.ok ? "info" : "error"}>
@@ -162,12 +162,45 @@ export function AbsensiPanel({
           </dl>
 
           {isPresent && !today.checkOut && (
-            <form action={outAction}>
-              <Button type="submit" disabled={outPending} className="w-full">
-                <LogOut className="h-4 w-4" aria-hidden />
-                {outPending ? "Memproses..." : "Absen pulang"}
-              </Button>
-            </form>
+            <div className="space-y-2">
+              {!hasLogToday && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                  <p className="text-xs font-medium text-amber-700">
+                    ⚠️ Anda belum mengirim log aktivitas hari ini
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-600">
+                    Silakan isi dan kirim log aktivitas di menu{" "}
+                    <a
+                      href="/student/log"
+                      className="font-semibold underline hover:text-amber-800"
+                    >
+                      Log Aktivitas
+                    </a>{" "}
+                    terlebih dahulu sebelum absen pulang.
+                  </p>
+                </div>
+              )}
+              <form action={outAction}>
+                <Button
+                  type="submit"
+                  disabled={outPending || !hasLogToday}
+                  className="w-full"
+                  title={
+                    !hasLogToday
+                      ? "Kirim log aktivitas terlebih dahulu"
+                      : undefined
+                  }
+                >
+                  <LogOut className="h-4 w-4" aria-hidden />
+                  {outPending ? "Memproses..." : "Absen pulang"}
+                </Button>
+              </form>
+              {outState.message && (
+                <Notice tone={outState.ok ? "info" : "error"}>
+                  {outState.message}
+                </Notice>
+              )}
+            </div>
           )}
 
           {isPresent && today.checkOut && (

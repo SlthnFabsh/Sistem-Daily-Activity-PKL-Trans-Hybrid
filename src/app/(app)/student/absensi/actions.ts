@@ -102,6 +102,22 @@ export async function checkOut(
     return { ok: false, message: "Anda sudah absen pulang hari ini." };
   }
 
+  // Cek apakah sudah ada log aktivitas SUBMITTED untuk hari ini
+  const logToday = await prisma.activityLog.findFirst({
+    where: {
+      placementId: placement.id,
+      logDate: today,
+      status: "SUBMITTED",
+    },
+  });
+  if (!logToday) {
+    return {
+      ok: false,
+      message:
+        "Anda harus mengisi dan mengirim log aktivitas hari ini sebelum absen pulang.",
+    };
+  }
+
   const earlyLeave = nowWibTime() < placement.workEnd;
   await prisma.attendance.update({
     where: { id: attendance.id },
@@ -116,6 +132,7 @@ export async function checkOut(
       : "Absen pulang tercatat.",
   };
 }
+
 
 // Izin/Sakit: status wajib dipilih dan keterangan wajib diisi.
 export async function submitLeave(

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/permissions";
 import { getActivePlacementForUser, isDateInPeriod } from "@/lib/attendance";
-import { isWithinBackdateWindow } from "@/lib/time";
+import { isWithinBackdateWindow, todayWib } from "@/lib/time";
 import { activityLogSchema } from "@/lib/validations";
 import { LogStatus } from "@/generated/prisma/client";
 import { toFieldErrors, type ActionResult, type ImportResult } from "@/lib/action-result";
@@ -12,6 +12,20 @@ import { deleteFileFromStorage } from "@/lib/storage";
 import { processLogExcelImport } from "@/lib/log-import";
 
 const PATH = "/student/log";
+
+/**
+ * Cek apakah siswa sudah absen pulang hari ini.
+ * Jika sudah checkout, log tidak boleh diubah.
+ */
+async function hasCheckedOutToday(placementId: string): Promise<boolean> {
+  const att = await prisma.attendance.findUnique({
+    where: {
+      placementId_attDate: { placementId, attDate: todayWib() },
+    },
+    select: { checkOut: true },
+  });
+  return !!(att?.checkOut);
+}
 
 // Simpan log sebagai DRAFT (buat baru atau update yang masih DRAFT).
 export async function saveLogDraft(
@@ -62,7 +76,6 @@ export async function saveLogDraft(
 
   const existingId = formData.get("logId");
   if (existingId && typeof existingId === "string") {
-    // Update hanya boleh jika masih DRAFT.
     const existing = await prisma.activityLog.findUnique({
       where: { id: existingId },
       include: { placement: { include: { student: true } } },
@@ -71,7 +84,7 @@ export async function saveLogDraft(
       return { ok: false, message: "Log tidak ditemukan." };
     }
     if (existing.status !== LogStatus.DRAFT) {
-      return { ok: false, message: "Log yang sudah dikirim tidak bisa diubah." };
+      return { ok: false, message: "Log yang sudah dikirim tidak bisa diubah lewat draft." };
     }
     await prisma.activityLog.update({ where: { id: existingId }, data });
   } else {
@@ -118,8 +131,6 @@ export async function submitLog(
     };
   }
 
-  // Kirim hanya berlaku untuk draft yang sudah ada. Lampiran bukti wajib
-  // minimal 1 file, sehingga log tanpa lampiran tidak boleh dikirim.
   const logId = formData.get("logId");
   if (!logId || typeof logId !== "string") {
     return { ok: false, message: "Simpan draft log terlebih dahulu." };
@@ -133,7 +144,7 @@ export async function submitLog(
     return { ok: false, message: "Log tidak ditemukan." };
   }
   if (existing.status !== LogStatus.DRAFT) {
-    return { ok: false, message: "Log yang sudah dikirim tidak bisa diubah." };
+    return { ok: false, message: "Log yang sudah dikirim tidak bisa diubah lewat tombol Kirim." };
   }
   if (existing.attachments.length === 0) {
     return {
@@ -162,6 +173,76 @@ export async function submitLog(
   return { ok: true, message: "Log berhasil dikirim." };
 }
 
+/**
+ * Edit log yang sudah SUBMITTED — hanya boleh sebelum siswa absen pulang hari ini.
+ * Log SUBMITTED lama tidak ada tanggal kembali ke DRAFT; isi langsung diperbarui.
+ */
+export async function updateSubmittedLog(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await requireRole("STUDENT");
+
+  const parsed = activityLogSchema.safeParse({
+    logDate: formData.get("logDate"),
+    startTime: formData.get("startTime"),
+    endTime: formData.get("endTime"),
+    taskFrom: formData.get("taskFrom"),
+    description: formData.get("description"),
+    output: formData.get("output") || undefined,
+    obstacle: formData.get("obstacle") || undefined,
+  });
+  if (!parsed.success) {
+    return { ok: false, fieldErrors: toFieldErrors(parsed.error) };
+  }
+
+  const placement = await getActivePlacementForUser(user.id);
+  if (!placement) {
+    return { ok: false, message: "Anda belum memiliki penempatan PKL aktif." };
+  }
+
+  const logId = formData.get("logId");
+  if (!logId || typeof logId !== "string") {
+    return { ok: false, message: "ID log tidak valid." };
+  }
+
+  const existing = await prisma.activityLog.findUnique({
+    where: { id: logId },
+    include: { placement: { include: { student: true } } },
+  });
+  if (!existing || existing.placement.student.userId !== user.id) {
+    return { ok: false, message: "Log tidak ditemukan." };
+  }
+  if (existing.status !== LogStatus.SUBMITTED) {
+    return { ok: false, message: "Hanya log berstatus Terkirim yang bisa diupdate." };
+  }
+
+  // Cek apakah sudah absen pulang — jika ya, log dikunci
+  if (await hasCheckedOutToday(placement.id)) {
+    return {
+      ok: false,
+      message: "Log tidak dapat diubah setelah Anda absen pulang.",
+    };
+  }
+
+  await prisma.activityLog.update({
+    where: { id: logId },
+    data: {
+      startTime: parsed.data.startTime,
+      endTime: parsed.data.endTime,
+      taskFrom: parsed.data.taskFrom,
+      description: parsed.data.description,
+      output: parsed.data.output || null,
+      obstacle: parsed.data.obstacle || null,
+      // submittedAt diperbarui ke waktu edit terakhir
+      submittedAt: new Date(),
+    },
+  });
+
+  revalidatePath(PATH);
+  return { ok: true, message: "Log berhasil diperbarui." };
+}
+
 // Hapus log — hanya boleh jika masih DRAFT.
 export async function deleteLogDraft(
   _prev: ActionResult,
@@ -185,7 +266,6 @@ export async function deleteLogDraft(
     return { ok: false, message: "Log yang sudah dikirim tidak bisa dihapus." };
   }
 
-  // Hapus file lampiran dari storage.
   for (const att of log.attachments) {
     await deleteFileFromStorage(att.filePath);
   }
@@ -195,7 +275,7 @@ export async function deleteLogDraft(
   return { ok: true, message: "Log dihapus." };
 }
 
-// Hapus lampiran — hanya boleh jika log masih DRAFT.
+// Hapus lampiran — boleh selama log DRAFT atau SUBMITTED belum checkout.
 export async function deleteAttachment(
   _prev: ActionResult,
   formData: FormData
@@ -214,10 +294,21 @@ export async function deleteAttachment(
   if (!att || att.log.placement.student.userId !== user.id) {
     return { ok: false, message: "Lampiran tidak ditemukan." };
   }
-  if (att.log.status !== LogStatus.DRAFT) {
+
+  // Izinkan hapus lampiran dari DRAFT, atau dari SUBMITTED jika belum checkout
+  if (att.log.status === LogStatus.DRAFT) {
+    // boleh
+  } else if (att.log.status === LogStatus.SUBMITTED) {
+    if (await hasCheckedOutToday(att.log.placementId)) {
+      return {
+        ok: false,
+        message: "Lampiran tidak dapat dihapus setelah Anda absen pulang.",
+      };
+    }
+  } else {
     return {
       ok: false,
-      message: "Log yang sudah dikirim tidak bisa dihapus lampirannya.",
+      message: "Lampiran log ini tidak bisa diubah.",
     };
   }
 
@@ -273,4 +364,3 @@ export async function importStudentLogs(
   revalidatePath("/student/riwayat");
   return result;
 }
-

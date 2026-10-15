@@ -26,7 +26,7 @@ export type LogReviewItem = {
   description: string;
   output: string | null;
   obstacle: string | null;
-  status: "SUBMITTED";
+  status: "SUBMITTED" | "PENDING_REVIEW";
   submittedAt: string | null;
   formattedSubmittedAt: string | null;
   student: LogStudentView;

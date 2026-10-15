@@ -28,11 +28,17 @@ export default async function LogPage() {
     );
   }
 
-  // Siapkan draft untuk hari ini agar siswa bisa langsung mengunggah lampiran
-  // tanpa harus menekan "Simpan Draft" lebih dulu. Bila log hari ini sudah
-  // dikirim, tidak dibuat draft baru (cukup tampil di bagian "Terkirim").
   const today = todayWib();
   const todayIso = today.toISOString().slice(0, 10);
+
+  // Cek apakah sudah checkout hari ini (jika ya, log hari ini dikunci)
+  const todayAttendance = await prisma.attendance.findUnique({
+    where: {
+      placementId_attDate: { placementId: placement.id, attDate: today },
+    },
+    select: { checkOut: true },
+  });
+  const lockedByCheckout = !!todayAttendance?.checkOut;
 
   let logs = await prisma.activityLog.findMany({
     where: { placementId: placement.id },
@@ -65,7 +71,17 @@ export default async function LogPage() {
   }
 
   const draftLogs = logs.filter((l) => l.status === "DRAFT");
-  const submittedLogs = logs.filter((l) => l.status === "SUBMITTED");
+  // Log SUBMITTED hari ini bisa diedit jika belum checkout
+  const todaysSubmitted = logs.find(
+    (l) =>
+      l.status === "SUBMITTED" && l.logDate.toISOString().slice(0, 10) === todayIso
+  );
+  // Log SUBMITTED lainnya (bukan hari ini) — hanya tampil read-only
+  const submittedLogs = logs.filter(
+    (l) =>
+      l.status === "SUBMITTED" &&
+      l.logDate.toISOString().slice(0, 10) !== todayIso
+  );
 
   return (
     <>
@@ -84,6 +100,8 @@ export default async function LogPage() {
             </h2>
             <LogForm
               logId={todaysDraft.id}
+              logStatus="DRAFT"
+              lockedByCheckout={lockedByCheckout}
               defaultValues={{
                 logDate: todaysDraft.logDate.toISOString().slice(0, 10),
                 startTime: todaysDraft.startTime,
@@ -94,6 +112,41 @@ export default async function LogPage() {
                 obstacle: todaysDraft.obstacle ?? undefined,
               }}
               attachments={todaysDraft.attachments}
+            />
+          </section>
+        )}
+
+        {/* Log SUBMITTED hari ini yang masih bisa diedit */}
+        {todaysSubmitted && !todaysDraft && (
+          <section>
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-text">
+              Log Hari Ini
+              <Badge tone="primary">Terkirim</Badge>
+              {!lockedByCheckout && (
+                <span className="text-xs font-normal text-text-muted">
+                  (masih bisa diedit sebelum absen pulang)
+                </span>
+              )}
+              {lockedByCheckout && (
+                <span className="text-xs font-normal text-text-muted">
+                  (dikunci setelah absen pulang)
+                </span>
+              )}
+            </h2>
+            <LogForm
+              logId={todaysSubmitted.id}
+              logStatus="SUBMITTED"
+              lockedByCheckout={lockedByCheckout}
+              defaultValues={{
+                logDate: todaysSubmitted.logDate.toISOString().slice(0, 10),
+                startTime: todaysSubmitted.startTime,
+                endTime: todaysSubmitted.endTime,
+                taskFrom: todaysSubmitted.taskFrom,
+                description: todaysSubmitted.description,
+                output: todaysSubmitted.output ?? undefined,
+                obstacle: todaysSubmitted.obstacle ?? undefined,
+              }}
+              attachments={todaysSubmitted.attachments}
             />
           </section>
         )}
@@ -131,6 +184,8 @@ export default async function LogPage() {
                     <div className="mt-3">
                       <LogForm
                         logId={log.id}
+                        logStatus="DRAFT"
+                        lockedByCheckout={false}
                         defaultValues={{
                           logDate: log.logDate.toISOString().slice(0, 10),
                           startTime: log.startTime,
@@ -149,7 +204,7 @@ export default async function LogPage() {
           </section>
         )}
 
-        {/* Log SUBMITTED */}
+        {/* Log SUBMITTED lainnya (bukan hari ini) — read-only */}
         {submittedLogs.length > 0 && (
           <section>
             <h2 className="mb-2 text-sm font-semibold text-text">

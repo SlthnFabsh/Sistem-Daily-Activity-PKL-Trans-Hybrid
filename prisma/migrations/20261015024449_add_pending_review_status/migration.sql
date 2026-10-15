@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "LogStatus" ADD VALUE 'PENDING_REVIEW';

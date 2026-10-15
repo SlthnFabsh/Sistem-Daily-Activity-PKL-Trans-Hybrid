@@ -134,6 +134,18 @@ export async function processLogExcelImport({
     return failImport("File Excel tidak berisi data baris log aktivitas.");
   }
 
+  // Ambil semua tanggal log yang sudah ada untuk placement ini — cegah duplikat
+  const existingLogs = await prisma.activityLog.findMany({
+    where: { placementId },
+    select: { logDate: true },
+  });
+  const existingDates = new Set(
+    existingLogs.map((l) => l.logDate.toISOString().slice(0, 10))
+  );
+
+  // Set untuk mencegah duplikat dalam 1 file Excel
+  const importedDatesInBatch = new Set<string>();
+
   const rows: ImportRowResult[] = [];
   let imported = 0;
   let failed = 0;
@@ -157,7 +169,8 @@ export async function processLogExcelImport({
       }
     }
 
-    const logDateStr = typeof normalized.logDate === "string" ? normalized.logDate : "";
+    const logDateStr =
+      typeof normalized.logDate === "string" ? normalized.logDate : "";
     if (!logDateStr) {
       failed += 1;
       rows.push({
@@ -171,11 +184,36 @@ export async function processLogExcelImport({
 
     // Filter tanggal mulai impor jika ditentukan pengguna (misal dari Agustus)
     if (startDateFilter && logDateStr < startDateFilter) {
-      // Lewati baris sebelum tanggal mulai impor
+      // Lewati baris sebelum tanggal mulai impor (tidak dihitung sebagai gagal)
       continue;
     }
     if (endDateFilter && logDateStr > endDateFilter) {
       // Lewati baris setelah batas tanggal
+      continue;
+    }
+
+    // Cek duplikat — tanggal sudah ada di database (status apapun)
+    if (existingDates.has(logDateStr)) {
+      failed += 1;
+      rows.push({
+        row: rowNumber,
+        name: `${logDateStr} (${stringify(normalized.taskFrom) || "Log"})`,
+        ok: false,
+        error: "Tanggal ini sudah memiliki log aktivitas. Dilewati.",
+      });
+      continue;
+    }
+
+    // Cek duplikat — tanggal sudah diimpor dalam sesi ini (satu file)
+    if (importedDatesInBatch.has(logDateStr)) {
+      failed += 1;
+      rows.push({
+        row: rowNumber,
+        name: `${logDateStr} (${stringify(normalized.taskFrom) || "Log"})`,
+        ok: false,
+        error:
+          "Tanggal ini muncul lebih dari sekali dalam file Excel. Hanya baris pertama yang diimpor.",
+      });
       continue;
     }
 
@@ -210,7 +248,7 @@ export async function processLogExcelImport({
       continue;
     }
 
-    // Simpan ke database dengan status SUBMITTED agar langsung masuk laporan PDF
+    // Simpan ke database dengan status PENDING_REVIEW — menunggu persetujuan HRD
     await prisma.activityLog.create({
       data: {
         placementId,
@@ -221,11 +259,13 @@ export async function processLogExcelImport({
         description: data.description,
         output: data.output || null,
         obstacle: data.obstacle || null,
-        status: "SUBMITTED",
+        status: "PENDING_REVIEW",
         submittedAt: new Date(),
       },
     });
 
+    importedDatesInBatch.add(logDateStr);
+    existingDates.add(logDateStr); // tambahkan ke set agar iterasi berikutnya juga tercegah
     imported += 1;
     rows.push({
       row: rowNumber,
@@ -237,7 +277,7 @@ export async function processLogExcelImport({
   const message =
     imported === 0 && failed === 0
       ? "Tidak ada baris yang sesuai dengan kriteria tanggal impor."
-      : `Selesai: ${imported} log berhasil diimpor (status Terkirim), ${failed} gagal.`;
+      : `Selesai: ${imported} log diimpor (menunggu persetujuan HRD), ${failed} dilewati.`;
 
   return {
     ok: imported > 0,

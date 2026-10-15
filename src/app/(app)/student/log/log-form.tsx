@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionForm } from "@/lib/use-action-form";
 import imageCompression from "browser-image-compression";
-import { Paperclip, Send, Trash2, Loader2 } from "lucide-react";
+import { Lock, Paperclip, Pencil, Send, Trash2, Loader2 } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
 import { endPending, startPending } from "@/lib/pending-store";
 import {
   saveLogDraft,
   submitLog,
+  updateSubmittedLog,
   deleteLogDraft,
   deleteAttachment,
 } from "./actions";
@@ -30,10 +31,14 @@ type Attachment = {
 
 export function LogForm({
   logId,
+  logStatus = "DRAFT",
+  lockedByCheckout = false,
   defaultValues,
   attachments,
 }: {
   logId?: string;
+  logStatus?: "DRAFT" | "SUBMITTED";
+  lockedByCheckout?: boolean;
   defaultValues?: {
     logDate: string;
     startTime: string;
@@ -45,12 +50,21 @@ export function LogForm({
   };
   attachments: Attachment[];
 }) {
+  // Apakah form ini untuk log SUBMITTED yang bisa diedit
+  const isEditableSubmitted = logStatus === "SUBMITTED" && !lockedByCheckout;
+  // Apakah seluruh form dikunci (sudah checkout)
+  const isLocked = logStatus === "SUBMITTED" && lockedByCheckout;
+
   const [draftState, draftAction, draftPending] = useActionForm(
     saveLogDraft,
     initialState
   );
   const [submitState, submitAction, submitPending] = useActionForm(
     submitLog,
+    initialState
+  );
+  const [updateState, updateAction, updatePending] = useActionForm(
+    updateSubmittedLog,
     initialState
   );
   const [deleteState, deleteAction, deletePending] = useActionForm(
@@ -184,10 +198,65 @@ export function LogForm({
     }
   }
 
+  // Jika dikunci setelah checkout, tampilkan banner saja
+  if (isLocked) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <Lock className="h-4 w-4 flex-shrink-0 text-text-muted" />
+          <p className="text-xs text-text-muted">
+            Log ini telah dikunci karena Anda sudah absen pulang. Hubungi HRD
+            jika ada koreksi.
+          </p>
+        </div>
+        {attachments.length > 0 && (
+          <ul className="mt-3 space-y-1">
+            {attachments.map((att) => (
+              <li
+                key={att.id}
+                className="flex items-center justify-between rounded-xl border border-border px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-text">{att.fileName}</p>
+                  <p className="text-xs text-text-muted">
+                    {(att.fileSize / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleViewAttachment(att.id)}
+                  className="rounded-lg px-2 py-1 text-xs text-primary hover:bg-primary-soft"
+                >
+                  Lihat
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <form id={formId} action={draftAction} className="space-y-4">
+        {/* Banner jika log SUBMITTED masih bisa diedit */}
+        {isEditableSubmitted && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5">
+            <Pencil className="h-4 w-4 flex-shrink-0 text-blue-600" />
+            <p className="text-xs text-blue-700">
+              Log ini sudah terkirim tapi masih bisa diedit sebelum Anda absen
+              pulang. Klik{" "}
+              <strong>"Perbarui Log"</strong> untuk menyimpan perubahan.
+            </p>
+          </div>
+        )}
+
+        <form
+          id={formId}
+          action={isEditableSubmitted ? updateAction : draftAction}
+          className="space-y-4"
+        >
           {logId && <input type="hidden" name="logId" value={logId} />}
 
           <div className="grid grid-cols-2 gap-3">
@@ -197,6 +266,8 @@ export function LogForm({
               name="logDate"
               required
               defaultValue={defaultValues?.logDate}
+              // Tanggal tidak boleh diubah saat SUBMITTED
+              disabled={isEditableSubmitted}
             />
             <div className="grid grid-cols-2 gap-2">
               <Input
@@ -265,6 +336,7 @@ export function LogForm({
             </label>
           </div>
 
+          {/* Feedback pesan */}
           {draftState.message && (
             <Notice tone={draftState.ok ? "info" : "error"}>
               {draftState.message}
@@ -273,6 +345,11 @@ export function LogForm({
           {submitState.message && (
             <Notice tone={submitState.ok ? "info" : "error"}>
               {submitState.message}
+            </Notice>
+          )}
+          {updateState.message && (
+            <Notice tone={updateState.ok ? "info" : "error"}>
+              {updateState.message}
             </Notice>
           )}
           {deleteState.message && (
@@ -288,29 +365,45 @@ export function LogForm({
               </p>
             ))}
 
-          <div className="flex gap-2">
+          {/* Tombol aksi */}
+          {isEditableSubmitted ? (
+            // Mode edit SUBMITTED: hanya satu tombol "Perbarui Log"
             <Button
               type="submit"
-              variant="secondary"
-              disabled={draftPending || submitPending}
-              className="flex-1"
+              disabled={updatePending}
+              className="w-full"
             >
-              {draftPending ? "Menyimpan..." : "Simpan Draft"}
+              <Pencil className="h-4 w-4" aria-hidden />
+              {updatePending ? "Menyimpan..." : "Perbarui Log"}
             </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                const form = document.getElementById(formId) as HTMLFormElement | null;
-                if (form && !form.reportValidity()) return;
-                setShowConfirm(true);
-              }}
-              disabled={submitPending || draftPending}
-              className="flex-1"
-            >
-              <Send className="h-4 w-4" aria-hidden />
-              {submitPending ? "Mengirim..." : "Kirim"}
-            </Button>
-          </div>
+          ) : (
+            // Mode DRAFT: Simpan Draft + Kirim
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                variant="secondary"
+                disabled={draftPending || submitPending}
+                className="flex-1"
+              >
+                {draftPending ? "Menyimpan..." : "Simpan Draft"}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  const form = document.getElementById(
+                    formId
+                  ) as HTMLFormElement | null;
+                  if (form && !form.reportValidity()) return;
+                  setShowConfirm(true);
+                }}
+                disabled={submitPending || draftPending}
+                className="flex-1"
+              >
+                <Send className="h-4 w-4" aria-hidden />
+                {submitPending ? "Mengirim..." : "Kirim"}
+              </Button>
+            </div>
+          )}
 
           {/* Hidden submit button for "Kirim" action - triggered from confirm dialog */}
           <button
@@ -327,13 +420,15 @@ export function LogForm({
         </form>
       </Card>
 
+      {/* Dialog konfirmasi Kirim */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="w-full max-w-sm p-4">
             <h3 className="text-sm font-semibold text-text">Kirim Log?</h3>
             <p className="mt-2 text-sm text-text-muted">
-              Log yang sudah dikirim <strong>tidak bisa diubah</strong>. Pastikan
-              isi dan lampiran sudah benar.
+              Log yang sudah dikirim masih bisa diedit selama Anda{" "}
+              <strong>belum absen pulang</strong>. Setelah absen pulang, log
+              akan dikunci permanen.
             </p>
             <div className="mt-4 flex gap-2">
               <Button
@@ -359,15 +454,16 @@ export function LogForm({
         </div>
       )}
 
+      {/* Kartu lampiran */}
       {logId && (
         <Card className="p-4">
           <h3 className="text-sm font-semibold text-text">
-            Lampiran bukti (wajib)
+            Lampiran bukti {logStatus === "DRAFT" ? "(wajib)" : ""}
           </h3>
           <p className="mt-0.5 text-xs text-text-muted">
             JPG, PNG, PDF, DOCX, XLSX. Maks 5 MB per file, maks 3 file.
           </p>
-          {attachments.length === 0 && (
+          {attachments.length === 0 && logStatus === "DRAFT" && (
             <p className="mt-1 text-xs text-amber-600">
               Minimal 1 lampiran untuk bisa mengirim log.
             </p>
@@ -406,20 +502,24 @@ export function LogForm({
                     >
                       Lihat
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAttachment(att.id)}
-                      className="rounded-lg px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                    </button>
+                    {/* Tombol hapus lampiran: tersedia di DRAFT, dan di SUBMITTED jika belum checkout */}
+                    {(logStatus === "DRAFT" || isEditableSubmitted) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAttachment(att.id)}
+                        className="rounded-lg px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
             </ul>
           )}
 
-          {attachments.length < 3 && (
+          {/* Tombol tambah lampiran: tersedia di DRAFT, dan di SUBMITTED jika belum checkout */}
+          {attachments.length < 3 && (logStatus === "DRAFT" || isEditableSubmitted) && (
             <div className="mt-3">
               <input
                 ref={fileInputRef}
@@ -457,7 +557,8 @@ export function LogForm({
         </Card>
       )}
 
-      {logId && (
+      {/* Tombol hapus log — hanya untuk DRAFT */}
+      {logId && logStatus === "DRAFT" && (
         <form action={deleteAction}>
           <input type="hidden" name="logId" value={logId} />
           <Button
