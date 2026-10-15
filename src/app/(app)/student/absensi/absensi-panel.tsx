@@ -188,8 +188,81 @@ function CheckInWithMedia({
   const [lat, setLat] = useState<string>("");
   const [lng, setLng] = useState<string>("");
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [camActive, setCamActive] = useState(false);
 
-  function openFilePicker() {
+  async function openCamera() {
+    setCameraError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Browser tidak mendukung akses kamera.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+      const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
+      if (video) {
+        video.srcObject = stream;
+        await video.play();
+      }
+      setCamActive(true);
+      (window as any).__checkinStream = stream;
+    } catch (err: any) {
+      const message =
+        err?.message ||
+        (err instanceof Error ? err.message : "Gagal membuka kamera.");
+      setCameraError(message);
+    }
+  }
+
+  function capturePhoto() {
+    const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
+    if (!video || !video.readyState) {
+      setCameraError("Kamera belum siap.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setCameraError("Gagal membuat preview foto.");
+      return;
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setCameraError("Gagal mengambil foto.");
+          return;
+        }
+        const file = new File([blob], "selfie.jpg", { type: blob.type || "image/jpeg" });
+        setFile(file);
+        setPreview(URL.createObjectURL(file));
+        stopCamera();
+      },
+      "image/jpeg",
+      0.9,
+    );
+  }
+
+  function stopCamera() {
+    const stream = (window as any).__checkinStream as MediaStream | undefined;
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      (window as any).__checkinStream = undefined;
+    }
+    setCamActive(false);
+    const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
+    if (video) video.srcObject = null;
+  }
+
+  function pickFile() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -198,8 +271,8 @@ function CheckInWithMedia({
       const f = input.files?.[0];
       if (!f) return;
       setFile(f);
-      const url = URL.createObjectURL(f);
-      setPreview(url);
+      setPreview(URL.createObjectURL(f));
+      stopCamera();
     };
     input.click();
   }
@@ -229,46 +302,80 @@ function CheckInWithMedia({
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="latitude" value={lat} />
       <input type="hidden" name="longitude" value={lng} />
+      <input type="file" name="photo" className="sr-only" />
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-text">Foto lokasi (wajib)</span>
-        <div className="flex items-center gap-2">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              setFile(f);
-              const url = URL.createObjectURL(f);
-              setPreview(url);
-            }}
-            className="sr-only"
-            id="checkin-photo"
-          />
-          <label
-            htmlFor="checkin-photo"
-            className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-text hover:bg-primary-soft"
-          >
-            <span className="text-lg leading-none">📷</span> Pilih foto
-          </label>
+
+        {preview ? (
+          <div className="relative inline-block">
+            <img
+              src={preview}
+              alt="preview"
+              className="max-h-48 rounded-xl border border-border object-cover"
+            />
+          </div>
+        ) : camActive ? (
+          <div className="relative overflow-hidden rounded-xl border border-border bg-black">
+            <video
+              id="checkin-video"
+              autoPlay
+              playsInline
+              muted
+              className="w-full max-h-52 object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="rounded-full border-2 border-white/70 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
+                Aktifkan GPS lalu tekan foto
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={openCamera}
+              disabled={preview ? true : camActive}
+              className="px-3 py-1.5"
+            >
+              {camActive ? "Buka kamera" : "Buka kamera depan"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={pickFile}
+              disabled={preview ? true : !camActive}
+              className="px-3 py-1.5"
+            >
+              Pilih dari galeri
+            </Button>
+          </div>
+        )}
+
+        {camActive && (
           <Button
             type="button"
-            variant="secondary"
-            onClick={getLocation}
-            disabled={lat && lng ? true : false}
-            className="px-3 py-1.5"
+            variant="primary"
+            onClick={capturePhoto}
+            className="mt-2 w-full"
           >
-            {lat && lng ? "Lokasi tersetel" : "Ambil GPS"}
+            <span className="text-lg leading-none">📸</span> Ambil foto
           </Button>
-        </div>
-        {file && (
-          <p className="mt-1 text-xs text-text-muted">
-            File: {file.name} · {Math.round((file.size / 1024))} KB
-          </p>
         )}
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={getLocation}
+          disabled={lat && lng ? true : false}
+          className="mt-2 px-3 py-1.5"
+        >
+          {lat && lng ? "Lokasi tersetel" : "Ambil GPS"}
+        </Button>
+
         {geoError && <p className="mt-1 text-xs text-red-600">{geoError}</p>}
+        {cameraError && <p className="mt-1 text-xs text-red-600">{cameraError}</p>}
       </label>
 
       {preview && (
@@ -288,6 +395,21 @@ function CheckInWithMedia({
         </div>
       )}
 
+      <input
+        type="file"
+        name="photo"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          setFile(f);
+          setPreview(URL.createObjectURL(f));
+          stopCamera();
+        }}
+      />
+
       <Button
         type="submit"
         disabled={inPending || !file || !lat || !lng}
@@ -296,7 +418,7 @@ function CheckInWithMedia({
         {inPending ? "Memproses..." : "Absen masuk + foto & GPS"}
       </Button>
       <p className="text-xs text-text-muted">
-        Aktifkan GPS dan unggah foto lokasi ketika absen masuk.
+        Aktifkan GPS dan ambil selfie saat absen masuk.
       </p>
     </form>
   );
@@ -315,8 +437,81 @@ function CheckOutWithMedia({
   const [lat, setLat] = useState<string>("");
   const [lng, setLng] = useState<string>("");
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [camActive, setCamActive] = useState(false);
 
-  function openFilePicker() {
+  async function openCamera() {
+    setCameraError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Browser tidak mendukung akses kamera.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+      const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
+      if (video) {
+        video.srcObject = stream;
+        await video.play();
+      }
+      setCamActive(true);
+      (window as any).__checkoutStream = stream;
+    } catch (err: any) {
+      const message =
+        err?.message ||
+        (err instanceof Error ? err.message : "Gagal membuka kamera.");
+      setCameraError(message);
+    }
+  }
+
+  function capturePhoto() {
+    const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
+    if (!video || !video.readyState) {
+      setCameraError("Kamera belum siap.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setCameraError("Gagal membuat preview foto.");
+      return;
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setCameraError("Gagal mengambil foto.");
+          return;
+        }
+        const file = new File([blob], "selfie.jpg", { type: blob.type || "image/jpeg" });
+        setFile(file);
+        setPreview(URL.createObjectURL(file));
+        stopCamera();
+      },
+      "image/jpeg",
+      0.9,
+    );
+  }
+
+  function stopCamera() {
+    const stream = (window as any).__checkoutStream as MediaStream | undefined;
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      (window as any).__checkoutStream = undefined;
+    }
+    setCamActive(false);
+    const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
+    if (video) video.srcObject = null;
+  }
+
+  function pickFile() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -325,8 +520,8 @@ function CheckOutWithMedia({
       const f = input.files?.[0];
       if (!f) return;
       setFile(f);
-      const url = URL.createObjectURL(f);
-      setPreview(url);
+      setPreview(URL.createObjectURL(f));
+      stopCamera();
     };
     input.click();
   }
@@ -356,46 +551,80 @@ function CheckOutWithMedia({
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="latitude" value={lat} />
       <input type="hidden" name="longitude" value={lng} />
+      <input type="file" name="photo" className="sr-only" />
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-text">Foto lokasi (wajib)</span>
-        <div className="flex items-center gap-2">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              setFile(f);
-              const url = URL.createObjectURL(f);
-              setPreview(url);
-            }}
-            className="sr-only"
-            id="checkout-photo"
-          />
-          <label
-            htmlFor="checkout-photo"
-            className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-text hover:bg-primary-soft"
-          >
-            <span className="text-lg leading-none">📷</span> Pilih foto
-          </label>
+
+        {preview ? (
+          <div className="relative inline-block">
+            <img
+              src={preview}
+              alt="preview"
+              className="max-h-48 rounded-xl border border-border object-cover"
+            />
+          </div>
+        ) : camActive ? (
+          <div className="relative overflow-hidden rounded-xl border border-border bg-black">
+            <video
+              id="checkout-video"
+              autoPlay
+              playsInline
+              muted
+              className="w-full max-h-52 object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="rounded-full border-2 border-white/70 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
+                Aktifkan GPS lalu tekan foto
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={openCamera}
+              disabled={preview ? true : camActive}
+              className="px-3 py-1.5"
+            >
+              {camActive ? "Buka kamera" : "Buka kamera depan"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={pickFile}
+              disabled={preview ? true : !camActive}
+              className="px-3 py-1.5"
+            >
+              Pilih dari galeri
+            </Button>
+          </div>
+        )}
+
+        {camActive && (
           <Button
             type="button"
-            variant="secondary"
-            onClick={getLocation}
-            disabled={lat && lng ? true : false}
-            className="px-3 py-1.5"
+            variant="primary"
+            onClick={capturePhoto}
+            className="mt-2 w-full"
           >
-            {lat && lng ? "Lokasi tersetel" : "Ambil GPS"}
+            <span className="text-lg leading-none">📸</span> Ambil foto
           </Button>
-        </div>
-        {file && (
-          <p className="mt-1 text-xs text-text-muted">
-            File: {file.name} · {Math.round((file.size / 1024))} KB
-          </p>
         )}
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={getLocation}
+          disabled={lat && lng ? true : false}
+          className="mt-2 px-3 py-1.5"
+        >
+          {lat && lng ? "Lokasi tersetel" : "Ambil GPS"}
+        </Button>
+
         {geoError && <p className="mt-1 text-xs text-red-600">{geoError}</p>}
+        {cameraError && <p className="mt-1 text-xs text-red-600">{cameraError}</p>}
       </label>
 
       {preview && (
@@ -416,6 +645,21 @@ function CheckOutWithMedia({
           </p>
         </div>
       )}
+
+      <input
+        type="file"
+        name="photo"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          setFile(f);
+          setPreview(URL.createObjectURL(f));
+          stopCamera();
+        }}
+      />
 
       <Button
         type="submit"
