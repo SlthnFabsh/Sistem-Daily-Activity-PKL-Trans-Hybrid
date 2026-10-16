@@ -190,6 +190,7 @@ function CheckInWithMedia({
   const [geoError, setGeoError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [camActive, setCamActive] = useState(false);
+  const [camTrackActive, setCamTrackActive] = useState(false);
   const localStream = useRef<MediaStream | null>(null);
 
   async function openCamera() {
@@ -217,6 +218,19 @@ function CheckInWithMedia({
         await video.play();
       }
       setCamActive(true);
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        setCamTrackActive(Number(track.readyState) >= 2);
+        track.addEventListener("ended", () => {
+          setCamTrackActive(false);
+        });
+        track.addEventListener("mute", () => {
+          setCamTrackActive(false);
+        });
+        track.addEventListener("unmute", () => {
+          setCamTrackActive(true);
+        });
+      }
     } catch (err: unknown) {
       const message =
         err && typeof err === "object" && "message" in err
@@ -228,13 +242,67 @@ function CheckInWithMedia({
     }
   }
 
-  function capturePhoto() {
+  async function waitForFrameReady(video: HTMLVideoElement, timeoutMs = 3500) {
+    if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+      return true;
+    }
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
+      let ended = false;
+
+      const onReady = () => {
+        if (settled) return;
+        if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+          settled = true;
+          resolve(true);
+        }
+      };
+
+      const onEnded = () => {
+        if (settled) return;
+        ended = true;
+        settled = true;
+        resolve(false);
+      };
+
+      video.addEventListener("loadeddata", onReady, { once: true });
+      video.addEventListener("canplay", onReady, { once: true });
+      video.addEventListener("ended", onEnded, { once: true });
+      video.addEventListener("error", onEnded, { once: true });
+
+      setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        resolve(false);
+      }, timeoutMs);
+
+      if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        if (settled) return;
+        settled = true;
+        resolve(true);
+      }
+    });
+  }
+
+  async function capturePhoto() {
     const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
-    if (!camActive || !video || video.readyState < 2) {
+    if (!camActive || !video) {
+      setCameraError("Kamera belum siap. Buka kamera dulu.");
+      return;
+    }
+    if (!camTrackActive) {
       setCameraError(
-        !camActive
-          ? "Kamera belum siap."
-          : "Buat foto lewat kamera, bukan lewat galeri. Buka kamera dulu, baru ambil foto."
+        localStream.current && localStream.current.getVideoTracks().length === 0
+          ? "Kamera tidak aktif. Buka kamera dulu, lalu coba lagi."
+          : "Kamera terbuka tapi tidak aktif. Coba izinkan akses kamera lagi, lalu coba lagi."
+      );
+      return;
+    }
+    if (!(await waitForFrameReady(video))) {
+      setCameraError(
+        video.readyState >= 2
+          ? "Kamera terbuka tapi tidak bisa pakai frame-nya. Coba izinkan akses kamera lagi, lalu coba lagi."
+          : "Video kamera belum siap. Tunggu sebentar, lalu coba lagi."
       );
       return;
     }
@@ -271,24 +339,11 @@ function CheckInWithMedia({
       stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       localStream.current = null;
     }
+    localStream.current = null;
     setCamActive(false);
+    setCamTrackActive(false);
     const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
     if (video) video.srcObject = null;
-  }
-
-  function pickFile() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.capture = "environment";
-    input.onchange = () => {
-      const f = input.files?.[0];
-      if (!f) return;
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
-      stopCamera();
-    };
-    input.click();
   }
 
   async function getLocation() {
@@ -355,15 +410,6 @@ function CheckInWithMedia({
             >
               {camActive ? "Buka kamera" : "Buka kamera depan"}
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={pickFile}
-              disabled={preview ? true : !camActive}
-              className="px-3 py-1.5"
-            >
-              Pilih dari galeri
-            </Button>
           </div>
         )}
 
@@ -409,20 +455,37 @@ function CheckInWithMedia({
         </div>
       )}
 
-      <input
-        type="file"
-        name="photo"
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-          setFile(f);
-          setPreview(URL.createObjectURL(f));
-          stopCamera();
-        }}
-      />
+      {preview ? (
+        <input
+          type="file"
+          name="photo"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setFile(f);
+            setPreview(URL.createObjectURL(f));
+            stopCamera();
+          }}
+        />
+      ) : (
+        <input
+          type="file"
+          name="photo"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setFile(f);
+            setPreview(URL.createObjectURL(f));
+            stopCamera();
+          }}
+        />
+      )}
 
       <Button
         type="submit"
@@ -453,6 +516,7 @@ function CheckOutWithMedia({
   const [geoError, setGeoError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [camActive, setCamActive] = useState(false);
+  const [camTrackActive, setCamTrackActive] = useState(false);
   const localStream = useRef<MediaStream | null>(null);
 
   async function openCamera() {
@@ -480,6 +544,19 @@ function CheckOutWithMedia({
         await video.play();
       }
       setCamActive(true);
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        setCamTrackActive(Number(track.readyState) >= 2);
+        track.addEventListener("ended", () => {
+          setCamTrackActive(false);
+        });
+        track.addEventListener("mute", () => {
+          setCamTrackActive(false);
+        });
+        track.addEventListener("unmute", () => {
+          setCamTrackActive(true);
+        });
+      }
     } catch (err: unknown) {
       const message =
         err && typeof err === "object" && "message" in err
@@ -491,13 +568,67 @@ function CheckOutWithMedia({
     }
   }
 
-  function capturePhoto() {
+  async function waitForFrameReady(video: HTMLVideoElement, timeoutMs = 3500) {
+    if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+      return true;
+    }
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
+      let ended = false;
+
+      const onReady = () => {
+        if (settled) return;
+        if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+          settled = true;
+          resolve(true);
+        }
+      };
+
+      const onEnded = () => {
+        if (settled) return;
+        ended = true;
+        settled = true;
+        resolve(false);
+      };
+
+      video.addEventListener("loadeddata", onReady, { once: true });
+      video.addEventListener("canplay", onReady, { once: true });
+      video.addEventListener("ended", onEnded, { once: true });
+      video.addEventListener("error", onEnded, { once: true });
+
+      setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        resolve(false);
+      }, timeoutMs);
+
+      if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        if (settled) return;
+        settled = true;
+        resolve(true);
+      }
+    });
+  }
+
+  async function capturePhoto() {
     const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
-    if (!camActive || !video || video.readyState < 2) {
+    if (!camActive || !video) {
+      setCameraError("Kamera belum siap. Buka kamera dulu.");
+      return;
+    }
+    if (!camTrackActive) {
       setCameraError(
-        !camActive
-          ? "Kamera belum siap."
-          : "Buat foto lewat kamera, bukan lewat galeri. Buka kamera dulu, baru ambil foto."
+        localStream.current && localStream.current.getVideoTracks().length === 0
+          ? "Kamera tidak aktif. Buka kamera dulu, lalu coba lagi."
+          : "Kamera terbuka tapi tidak aktif. Coba izinkan akses kamera lagi, lalu coba lagi."
+      );
+      return;
+    }
+    if (!(await waitForFrameReady(video))) {
+      setCameraError(
+        video.readyState >= 2
+          ? "Kamera terbuka tapi tidak bisa pakai frame-nya. Coba izinkan akses kamera lagi, lalu coba lagi."
+          : "Video kamera belum siap. Tunggu sebentar, lalu coba lagi."
       );
       return;
     }
@@ -534,24 +665,11 @@ function CheckOutWithMedia({
       stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       localStream.current = null;
     }
+    localStream.current = null;
     setCamActive(false);
+    setCamTrackActive(false);
     const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
     if (video) video.srcObject = null;
-  }
-
-  function pickFile() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.capture = "environment";
-    input.onchange = () => {
-      const f = input.files?.[0];
-      if (!f) return;
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
-      stopCamera();
-    };
-    input.click();
   }
 
   async function getLocation() {
@@ -618,15 +736,6 @@ function CheckOutWithMedia({
             >
               {camActive ? "Buka kamera" : "Buka kamera depan"}
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={pickFile}
-              disabled={preview ? true : !camActive}
-              className="px-3 py-1.5"
-            >
-              Pilih dari galeri
-            </Button>
           </div>
         )}
 
@@ -674,20 +783,37 @@ function CheckOutWithMedia({
         </div>
       )}
 
-      <input
-        type="file"
-        name="photo"
-        accept="image/*"
-        capture="environment"
-        className="sr-only"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-          setFile(f);
-          setPreview(URL.createObjectURL(f));
-          stopCamera();
-        }}
-      />
+      {preview ? (
+        <input
+          type="file"
+          name="photo"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setFile(f);
+            setPreview(URL.createObjectURL(f));
+            stopCamera();
+          }}
+        />
+      ) : (
+        <input
+          type="file"
+          name="photo"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setFile(f);
+            setPreview(URL.createObjectURL(f));
+            stopCamera();
+          }}
+        />
+      )}
 
       <Button
         type="submit"
