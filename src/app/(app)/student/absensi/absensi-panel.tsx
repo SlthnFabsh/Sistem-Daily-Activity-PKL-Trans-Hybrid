@@ -231,7 +231,11 @@ function CheckInWithMedia({
   function capturePhoto() {
     const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
     if (!camActive || !video || video.readyState < 2) {
-      setCameraError("Kamera belum siap.");
+      setCameraError(
+        !camActive
+          ? "Kamera belum siap."
+          : "Buat foto lewat kamera, bukan lewat galeri. Buka kamera dulu, baru ambil foto."
+      );
       return;
     }
     const canvas = document.createElement("canvas");
@@ -243,18 +247,20 @@ function CheckInWithMedia({
       return;
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const defaultMime = "image/jpeg";
     canvas.toBlob(
       (blob) => {
-        if (!blob || !blob.type?.startsWith("image")) {
+        if (!blob) {
           setCameraError("Gagal mengambil foto.");
           return;
         }
-        const file = new File([blob], "selfie.jpg", { type: blob.type });
+        const mime = blob.type?.startsWith("image") ? blob.type : "image/jpeg";
+        const file = new File([blob], "selfie.jpg", { type: mime });
         setFile(file);
         setPreview(URL.createObjectURL(file));
         stopCamera();
       },
-      "image/jpeg",
+      defaultMime,
       0.9,
     );
   }
@@ -488,7 +494,11 @@ function CheckOutWithMedia({
   function capturePhoto() {
     const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
     if (!camActive || !video || video.readyState < 2) {
-      setCameraError("Kamera belum siap.");
+      setCameraError(
+        !camActive
+          ? "Kamera belum siap."
+          : "Buat foto lewat kamera, bukan lewat galeri. Buka kamera dulu, baru ambil foto."
+      );
       return;
     }
     const canvas = document.createElement("canvas");
@@ -500,18 +510,20 @@ function CheckOutWithMedia({
       return;
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const defaultMime = "image/jpeg";
     canvas.toBlob(
       (blob) => {
-        if (!blob || !blob.type?.startsWith("image")) {
+        if (!blob) {
           setCameraError("Gagal mengambil foto.");
           return;
         }
-        const file = new File([blob], "selfie.jpg", { type: blob.type });
+        const mime = blob.type?.startsWith("image") ? blob.type : "image/jpeg";
+        const file = new File([blob], "selfie.jpg", { type: mime });
         setFile(file);
         setPreview(URL.createObjectURL(file));
         stopCamera();
       },
-      "image/jpeg",
+      defaultMime,
       0.9,
     );
   }
