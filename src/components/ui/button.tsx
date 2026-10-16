@@ -10,9 +10,12 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-white hover:bg-primary-hover",
-  secondary: "border border-border bg-white text-text hover:bg-primary-soft",
-  danger: "border border-red-200 text-red-600 hover:bg-red-50",
+  primary:
+    "bg-primary text-white shadow-[var(--shadow-float)] hover:bg-primary-hover active:bg-primary-strong",
+  secondary:
+    "border border-border bg-white text-text shadow-sm hover:border-primary/30 hover:bg-primary-soft hover:text-primary",
+  danger:
+    "border border-danger/30 bg-white text-danger hover:bg-danger-soft",
 };
 
 export function Button({
@@ -23,13 +26,14 @@ export function Button({
   disabled,
   ...props
 }: Props) {
-  const disabledBool: boolean | undefined = disabled == null ? undefined : disabled === true;
+  const disabledBool: boolean | undefined =
+    disabled == null ? undefined : disabled === true;
   const Comp = (asChild ? "span" : "button") as React.ElementType;
   return (
     <Comp
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
+        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
         variants[variant],
         className
       )}

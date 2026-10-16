@@ -22,11 +22,13 @@ export function GlobalLoadingOverlay() {
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
     >
       <div className="flex min-w-[13rem] flex-col items-center gap-4 rounded-2xl bg-white px-8 py-9 shadow-xl">
-        <Loader2
-          className="h-10 w-10 animate-spin text-primary"
-          strokeWidth={2.5}
-          aria-hidden
-        />
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
+          <Loader2
+            className="h-7 w-7 animate-spin text-white"
+            strokeWidth={2.5}
+            aria-hidden
+          />
+        </span>
         <p className="text-sm font-semibold text-text">Memproses...</p>
       </div>
     </div>

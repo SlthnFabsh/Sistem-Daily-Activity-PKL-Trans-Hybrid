@@ -15,8 +15,8 @@ export function BottomNav({ items }: { items: NavItem[] }) {
   const visible = items.slice(0, 4);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white lg:hidden">
-      <div className="grid grid-cols-4">
+    <nav className="fixed inset-x-3 bottom-3 z-30 lg:hidden">
+      <div className="glass-panel flex items-stretch gap-1 rounded-2xl border border-border p-1.5 shadow-[var(--shadow-card)]">
         {visible.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = iconMap[item.icon];
@@ -26,14 +26,14 @@ export function BottomNav({ items }: { items: NavItem[] }) {
               href={item.href}
               prefetch
               className={clsx(
-                "flex flex-col items-center gap-1 px-2 py-2 text-xs transition-colors",
+                "flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-all duration-200",
                 active
-                  ? "font-semibold text-primary"
-                  : "text-text-muted"
+                  ? "bg-primary text-white shadow-[var(--shadow-float)]"
+                  : "text-text-muted hover:bg-primary-soft hover:text-primary"
               )}
             >
               <Icon className="h-5 w-5" aria-hidden />
-              {item.label}
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}

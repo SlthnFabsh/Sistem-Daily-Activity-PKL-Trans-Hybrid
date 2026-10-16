@@ -3,8 +3,8 @@ import { clsx } from "clsx";
 type Tone = "info" | "error";
 
 const tones: Record<Tone, string> = {
-  info: "bg-primary-soft text-primary",
-  error: "border border-red-200 bg-white text-red-600",
+  info: "border border-primary/15 bg-primary-soft text-primary-strong",
+  error: "border border-danger/20 bg-danger-soft text-danger",
 };
 
 export function Notice({
@@ -17,7 +17,7 @@ export function Notice({
   return (
     <div
       className={clsx(
-        "rounded-xl px-4 py-2 text-sm",
+        "rounded-xl px-4 py-2.5 text-sm font-medium",
         tones[tone]
       )}
     >

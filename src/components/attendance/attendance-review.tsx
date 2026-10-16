@@ -281,7 +281,7 @@ export function AttendanceReview({
                     <AttendancePhoto attendanceId={item.id} />
                   ) : (
                     <p className="rounded-xl border border-dashed border-border p-3 text-center text-xs italic text-text-muted">
-                      Tidak ada foto (absen izin/sakit).
+                      Tidak ada foto pada absensi ini.
                     </p>
                   )}
                 </div>
