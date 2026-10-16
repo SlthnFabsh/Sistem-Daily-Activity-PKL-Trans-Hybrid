@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useActionForm } from "@/lib/use-action-form";
 import { LogIn, LogOut } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
@@ -11,6 +11,18 @@ import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 
 const initialState: ActionResult = { ok: false };
+
+// Tempelkan File ke sebuah <input type="file"> agar ikut terkirim bersama FormData.
+function putFileIntoInput(input: HTMLInputElement | null, file: File) {
+  if (!input) return;
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  } catch {
+    // DataTransfer tidak didukung browser ini; abaikan.
+  }
+}
 
 type FormAction = (formData: FormData) => void;
 
@@ -192,6 +204,8 @@ function CheckInWithMedia({
   const [camActive, setCamActive] = useState(false);
   const [camTrackActive, setCamTrackActive] = useState(false);
   const localStream = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function openCamera() {
     setCameraError(null);
@@ -212,43 +226,7 @@ function CheckInWithMedia({
         },
       });
       localStream.current = stream;
-      const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
-      if (video) {
-        video.srcObject = stream;
-        await video.play();
-      }
-      const videoEl = video;
       setCamActive(true);
-      const track = stream.getVideoTracks()[0];
-      if (track) {
-        setCamTrackActive(Number(track.readyState) >= 2);
-        track.addEventListener("ended", () => {
-          setCamTrackActive(false);
-        });
-        track.addEventListener("mute", () => {
-          setCamTrackActive(false);
-        });
-        track.addEventListener("unmute", () => {
-          setCamTrackActive(true);
-        });
-      }
-      if (videoEl) {
-        const startedAt = Date.now();
-        const frameCheckTimer = setInterval(() => {
-          if (!videoEl || videoEl.readyState >= 2 && videoEl.videoWidth && videoEl.videoHeight) {
-            clearInterval(frameCheckTimer);
-            return;
-          }
-          if (Date.now() - startedAt > 5500) {
-            clearInterval(frameCheckTimer);
-          }
-        }, 250);
-        setTimeout(() => {
-          if (videoEl && videoEl.readyState < 2 || !videoEl.videoWidth || !videoEl.videoHeight) {
-            clearInterval(frameCheckTimer);
-          }
-        }, 6000);
-      }
     } catch (err: unknown) {
       const message =
         err && typeof err === "object" && "message" in err
@@ -259,6 +237,32 @@ function CheckInWithMedia({
       setCameraError(message);
     }
   }
+
+  useEffect(() => {
+    if (!camActive) return;
+    const stream = localStream.current;
+    const video = videoRef.current;
+    if (!stream || !video) return;
+    video.srcObject = stream;
+    video.play().catch(() => {});
+    const track = stream.getVideoTracks()[0];
+    if (!track) {
+      setCamTrackActive(false);
+      return;
+    }
+    const syncTrackState = () => {
+      setCamTrackActive(track.readyState === "live" && !track.muted);
+    };
+    syncTrackState();
+    track.addEventListener("ended", syncTrackState);
+    track.addEventListener("mute", syncTrackState);
+    track.addEventListener("unmute", syncTrackState);
+    return () => {
+      track.removeEventListener("ended", syncTrackState);
+      track.removeEventListener("mute", syncTrackState);
+      track.removeEventListener("unmute", syncTrackState);
+    };
+  }, [camActive]);
 
   async function waitForFrameReady(video: HTMLVideoElement, timeoutMs = 3500) {
     if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
@@ -299,7 +303,7 @@ function CheckInWithMedia({
   }
 
   async function capturePhoto() {
-    const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
+    const video = videoRef.current;
     if (!camActive || !video) {
       setCameraError("Kamera belum siap. Buka kamera dulu.");
       return;
@@ -340,6 +344,7 @@ function CheckInWithMedia({
         const file = new File([blob], "selfie.jpg", { type: mime });
         setFile(file);
         setPreview(URL.createObjectURL(file));
+        putFileIntoInput(fileInputRef.current, file);
         stopCamera();
       },
       defaultMime,
@@ -356,7 +361,7 @@ function CheckInWithMedia({
     localStream.current = null;
     setCamActive(false);
     setCamTrackActive(false);
-    const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
+    const video = videoRef.current;
     if (video) video.srcObject = null;
   }
 
@@ -385,7 +390,6 @@ function CheckInWithMedia({
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="latitude" value={lat} />
       <input type="hidden" name="longitude" value={lng} />
-      <input type="file" name="photo" className="sr-only" />
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-text">Foto lokasi (wajib)</span>
@@ -401,7 +405,7 @@ function CheckInWithMedia({
         ) : camActive ? (
           <div className="relative overflow-hidden rounded-xl border border-border bg-black">
             <video
-              id="checkin-video"
+              ref={videoRef}
               autoPlay
               playsInline
               muted
@@ -469,37 +473,21 @@ function CheckInWithMedia({
         </div>
       )}
 
-      {preview ? (
-        <input
-          type="file"
-          name="photo"
-          accept="image/*"
-          capture="environment"
-          className="sr-only"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            setFile(f);
-            setPreview(URL.createObjectURL(f));
-            stopCamera();
-          }}
-        />
-      ) : (
-        <input
-          type="file"
-          name="photo"
-          accept="image/*"
-          capture="environment"
-          className="sr-only"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            setFile(f);
-            setPreview(URL.createObjectURL(f));
-            stopCamera();
-          }}
-        />
-      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        name="photo"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          setFile(f);
+          setPreview(URL.createObjectURL(f));
+          stopCamera();
+        }}
+      />
 
       <Button
         type="submit"
@@ -533,6 +521,8 @@ function CheckOutWithMedia({
   const [camActive, setCamActive] = useState(false);
   const [camTrackActive, setCamTrackActive] = useState(false);
   const localStream = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function openCamera() {
     setCameraError(null);
@@ -553,43 +543,7 @@ function CheckOutWithMedia({
         },
       });
       localStream.current = stream;
-      const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
-      if (video) {
-        video.srcObject = stream;
-        await video.play();
-      }
-      const videoEl = video;
       setCamActive(true);
-      const track = stream.getVideoTracks()[0];
-      if (track) {
-        setCamTrackActive(Number(track.readyState) >= 2);
-        track.addEventListener("ended", () => {
-          setCamTrackActive(false);
-        });
-        track.addEventListener("mute", () => {
-          setCamTrackActive(false);
-        });
-        track.addEventListener("unmute", () => {
-          setCamTrackActive(true);
-        });
-      }
-      if (videoEl) {
-        const startedAt = Date.now();
-        const frameCheckTimer = setInterval(() => {
-          if (!videoEl || videoEl.readyState >= 2 && videoEl.videoWidth && videoEl.videoHeight) {
-            clearInterval(frameCheckTimer);
-            return;
-          }
-          if (Date.now() - startedAt > 5500) {
-            clearInterval(frameCheckTimer);
-          }
-        }, 250);
-        setTimeout(() => {
-          if (videoEl && videoEl.readyState < 2 || !videoEl.videoWidth || !videoEl.videoHeight) {
-            clearInterval(frameCheckTimer);
-          }
-        }, 6000);
-      }
     } catch (err: unknown) {
       const message =
         err && typeof err === "object" && "message" in err
@@ -600,6 +554,32 @@ function CheckOutWithMedia({
       setCameraError(message);
     }
   }
+
+  useEffect(() => {
+    if (!camActive) return;
+    const stream = localStream.current;
+    const video = videoRef.current;
+    if (!stream || !video) return;
+    video.srcObject = stream;
+    video.play().catch(() => {});
+    const track = stream.getVideoTracks()[0];
+    if (!track) {
+      setCamTrackActive(false);
+      return;
+    }
+    const syncTrackState = () => {
+      setCamTrackActive(track.readyState === "live" && !track.muted);
+    };
+    syncTrackState();
+    track.addEventListener("ended", syncTrackState);
+    track.addEventListener("mute", syncTrackState);
+    track.addEventListener("unmute", syncTrackState);
+    return () => {
+      track.removeEventListener("ended", syncTrackState);
+      track.removeEventListener("mute", syncTrackState);
+      track.removeEventListener("unmute", syncTrackState);
+    };
+  }, [camActive]);
 
   async function waitForFrameReady(video: HTMLVideoElement, timeoutMs = 3500) {
     if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
@@ -640,7 +620,7 @@ function CheckOutWithMedia({
   }
 
   async function capturePhoto() {
-    const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
+    const video = videoRef.current;
     if (!camActive || !video) {
       setCameraError("Kamera belum siap. Buka kamera dulu.");
       return;
@@ -681,6 +661,7 @@ function CheckOutWithMedia({
         const file = new File([blob], "selfie.jpg", { type: mime });
         setFile(file);
         setPreview(URL.createObjectURL(file));
+        putFileIntoInput(fileInputRef.current, file);
         stopCamera();
       },
       defaultMime,
@@ -697,7 +678,7 @@ function CheckOutWithMedia({
     localStream.current = null;
     setCamActive(false);
     setCamTrackActive(false);
-    const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
+    const video = videoRef.current;
     if (video) video.srcObject = null;
   }
 
@@ -726,7 +707,6 @@ function CheckOutWithMedia({
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="latitude" value={lat} />
       <input type="hidden" name="longitude" value={lng} />
-      <input type="file" name="photo" className="sr-only" />
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-text">Foto lokasi (wajib)</span>
@@ -742,7 +722,7 @@ function CheckOutWithMedia({
         ) : camActive ? (
           <div className="relative overflow-hidden rounded-xl border border-border bg-black">
             <video
-              id="checkout-video"
+              ref={videoRef}
               autoPlay
               playsInline
               muted
@@ -812,37 +792,21 @@ function CheckOutWithMedia({
         </div>
       )}
 
-      {preview ? (
-        <input
-          type="file"
-          name="photo"
-          accept="image/*"
-          capture="environment"
-          className="sr-only"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            setFile(f);
-            setPreview(URL.createObjectURL(f));
-            stopCamera();
-          }}
-        />
-      ) : (
-        <input
-          type="file"
-          name="photo"
-          accept="image/*"
-          capture="environment"
-          className="sr-only"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
-            setFile(f);
-            setPreview(URL.createObjectURL(f));
-            stopCamera();
-          }}
-        />
-      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        name="photo"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          setFile(f);
+          setPreview(URL.createObjectURL(f));
+          stopCamera();
+        }}
+      />
 
       <Button
         type="submit"

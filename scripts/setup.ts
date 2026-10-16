@@ -79,7 +79,7 @@ async function main() {
   });
 
   // 5. Buat bucket storage privat (dilewati jika sudah ada).
-  await record("storage:setup (bucket attachments)", () => {
+  await record("storage:setup (bucket attachments & attendance-photos)", () => {
     runCommand("npm run storage:setup");
   });
 

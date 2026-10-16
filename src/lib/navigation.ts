@@ -41,12 +41,14 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/settings/password", label: "Ganti Password", icon: "key-round" },
   ],
   MENTOR: [
+    { href: "/mentor/absensi", label: "Absensi Siswa", icon: "calendar-check" },
     { href: "/mentor/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/mentor/laporan", label: "Laporan", icon: "file-text" },
     { href: "/settings/password", label: "Ganti Password", icon: "key-round" },
   ],
   HRD: [
     { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
+    { href: "/hrd/absensi", label: "Absensi Siswa", icon: "calendar-check" },
     { href: "/hrd/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
     { href: "/hrd/pic", label: "Lihat PIC", icon: "users" },
@@ -59,6 +61,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/hrd/divisi", label: "Divisi", icon: "building-2" },
     { href: "/hrd/periode", label: "Periode", icon: "calendar-range" },
     { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
+    { href: "/hrd/absensi", label: "Absensi Siswa", icon: "calendar-check" },
     { href: "/hrd/log", label: "Log Siswa", icon: "clipboard-list" },
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
     { href: "/superadmin/password-requests", label: "Reset Password (Pengguna)", icon: "key-round" },

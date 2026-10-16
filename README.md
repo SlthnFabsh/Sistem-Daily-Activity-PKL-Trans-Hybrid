@@ -61,7 +61,7 @@ Script ini menjalankan, secara berurutan:
 - mengisi `AUTH_SECRET` (acak) & `NEXTAUTH_URL` di `.env` bila kosong;
 - `db:migrate` — `prisma migrate deploy` (menerapkan `prisma/migrations`, termasuk RLS tabel);
 - `db:seed` — data contoh (idempotent, aman dijalankan berulang);
-- `storage:setup` — membuat bucket privat `attachments` (dilewati jika sudah ada);
+- `storage:setup` — membuat bucket privat `attachments` & `attendance-photos` (dilewati jika sudah ada);
 - uji koneksi database + ringkasan hasil per langkah.
 
 ### 4. Jalankan
@@ -95,7 +95,7 @@ Data lain: 1 periode PKL aktif (`Periode PKL 2026/2027`, 2026-07-01 s.d. 2027-06
 npm run check:env   # cek 4 variabel Supabase
 npm run db:migrate  # prisma migrate deploy
 npm run db:seed     # seed data contoh
-npm run storage:setup # buat bucket attachments (idempotent)
+npm run storage:setup # buat bucket attachments & attendance-photos (idempotent)
 npm run lint        # eslint
 npm run build       # production build
 ```
