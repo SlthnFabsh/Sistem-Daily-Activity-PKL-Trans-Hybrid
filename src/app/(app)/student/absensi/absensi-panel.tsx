@@ -217,6 +217,7 @@ function CheckInWithMedia({
         video.srcObject = stream;
         await video.play();
       }
+      const videoEl = video;
       setCamActive(true);
       const track = stream.getVideoTracks()[0];
       if (track) {
@@ -230,6 +231,23 @@ function CheckInWithMedia({
         track.addEventListener("unmute", () => {
           setCamTrackActive(true);
         });
+      }
+      if (videoEl) {
+        const startedAt = Date.now();
+        const frameCheckTimer = setInterval(() => {
+          if (!videoEl || videoEl.readyState >= 2 && videoEl.videoWidth && videoEl.videoHeight) {
+            clearInterval(frameCheckTimer);
+            return;
+          }
+          if (Date.now() - startedAt > 5500) {
+            clearInterval(frameCheckTimer);
+          }
+        }, 250);
+        setTimeout(() => {
+          if (videoEl && videoEl.readyState < 2 || !videoEl.videoWidth || !videoEl.videoHeight) {
+            clearInterval(frameCheckTimer);
+          }
+        }, 6000);
       }
     } catch (err: unknown) {
       const message =
@@ -248,7 +266,6 @@ function CheckInWithMedia({
     }
     return new Promise<boolean>((resolve) => {
       let settled = false;
-      let ended = false;
 
       const onReady = () => {
         if (settled) return;
@@ -258,25 +275,22 @@ function CheckInWithMedia({
         }
       };
 
-      const onEnded = () => {
-        if (settled) return;
-        ended = true;
-        settled = true;
-        resolve(false);
-      };
-
       video.addEventListener("loadeddata", onReady, { once: true });
       video.addEventListener("canplay", onReady, { once: true });
-      video.addEventListener("ended", onEnded, { once: true });
-      video.addEventListener("error", onEnded, { once: true });
+      video.addEventListener("error", () => {
+        if (settled) return;
+        settled = true;
+        resolve(false);
+      }, { once: true });
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (settled) return;
         settled = true;
         resolve(false);
       }, timeoutMs);
 
       if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        clearTimeout(timer);
         if (settled) return;
         settled = true;
         resolve(true);
@@ -298,7 +312,7 @@ function CheckInWithMedia({
       );
       return;
     }
-    if (!(await waitForFrameReady(video))) {
+    if (!(await waitForFrameReady(video, 8000))) {
       setCameraError(
         video.readyState >= 2
           ? "Kamera terbuka tapi tidak bisa pakai frame-nya. Coba izinkan akses kamera lagi, lalu coba lagi."
@@ -500,6 +514,7 @@ function CheckInWithMedia({
     </form>
   );
 }
+
 function CheckOutWithMedia({
   formAction,
   outPending,
@@ -543,6 +558,7 @@ function CheckOutWithMedia({
         video.srcObject = stream;
         await video.play();
       }
+      const videoEl = video;
       setCamActive(true);
       const track = stream.getVideoTracks()[0];
       if (track) {
@@ -556,6 +572,23 @@ function CheckOutWithMedia({
         track.addEventListener("unmute", () => {
           setCamTrackActive(true);
         });
+      }
+      if (videoEl) {
+        const startedAt = Date.now();
+        const frameCheckTimer = setInterval(() => {
+          if (!videoEl || videoEl.readyState >= 2 && videoEl.videoWidth && videoEl.videoHeight) {
+            clearInterval(frameCheckTimer);
+            return;
+          }
+          if (Date.now() - startedAt > 5500) {
+            clearInterval(frameCheckTimer);
+          }
+        }, 250);
+        setTimeout(() => {
+          if (videoEl && videoEl.readyState < 2 || !videoEl.videoWidth || !videoEl.videoHeight) {
+            clearInterval(frameCheckTimer);
+          }
+        }, 6000);
       }
     } catch (err: unknown) {
       const message =
@@ -574,7 +607,6 @@ function CheckOutWithMedia({
     }
     return new Promise<boolean>((resolve) => {
       let settled = false;
-      let ended = false;
 
       const onReady = () => {
         if (settled) return;
@@ -584,25 +616,22 @@ function CheckOutWithMedia({
         }
       };
 
-      const onEnded = () => {
-        if (settled) return;
-        ended = true;
-        settled = true;
-        resolve(false);
-      };
-
       video.addEventListener("loadeddata", onReady, { once: true });
       video.addEventListener("canplay", onReady, { once: true });
-      video.addEventListener("ended", onEnded, { once: true });
-      video.addEventListener("error", onEnded, { once: true });
+      video.addEventListener("error", () => {
+        if (settled) return;
+        settled = true;
+        resolve(false);
+      }, { once: true });
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (settled) return;
         settled = true;
         resolve(false);
       }, timeoutMs);
 
       if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        clearTimeout(timer);
         if (settled) return;
         settled = true;
         resolve(true);
@@ -624,7 +653,7 @@ function CheckOutWithMedia({
       );
       return;
     }
-    if (!(await waitForFrameReady(video))) {
+    if (!(await waitForFrameReady(video, 8000))) {
       setCameraError(
         video.readyState >= 2
           ? "Kamera terbuka tapi tidak bisa pakai frame-nya. Coba izinkan akses kamera lagi, lalu coba lagi."
