@@ -66,8 +66,8 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
-      {/* ── Panel brand ───────────────────────────────────────────── */}
-      <aside className="relative overflow-hidden bg-ink px-7 pb-12 pt-10 text-white lg:flex lg:w-[46%] lg:flex-col lg:justify-between lg:px-14 lg:py-14">
+      {/* ── Panel brand (hanya layar besar) ───────────────────────── */}
+      <aside className="relative hidden overflow-hidden bg-ink px-7 pb-12 pt-10 text-white lg:flex lg:w-[46%] lg:flex-col lg:justify-between lg:px-14 lg:py-14">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {SQUARES.map((s, i) => (
             <span
@@ -121,10 +121,17 @@ function LoginForm() {
       </aside>
 
       {/* ── Panel form ────────────────────────────────────────────── */}
-      <main className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8">
+      <main className="flex flex-1 items-start justify-center px-5 py-8 sm:px-8 lg:items-center lg:py-10">
         <div className="animate-fade-up w-full max-w-sm">
-          <div className="mb-8 flex justify-center lg:hidden">
-            <BrandLogo width={170} priority />
+          {/* Header brand ringkas untuk HP: form langsung terlihat tanpa scroll */}
+          <div className="mb-6 flex flex-col items-center text-center lg:hidden">
+            <BrandLogo width={132} priority />
+            <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+              Your Trusted Partner
+            </p>
+            <h1 className="mt-1 text-lg font-extrabold tracking-tight text-text">
+              Sistem Daily Activity PKL
+            </h1>
           </div>
 
           <h2 className="text-2xl font-bold tracking-tight text-text">

@@ -38,3 +38,10 @@ export type AttendanceActiveFilters = {
   fromDate?: string;
   toDate?: string;
 };
+
+export type AttendancePagination = {
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+};

@@ -48,7 +48,7 @@ export default async function RiwayatPage() {
       <div className="space-y-6">
         {/* Filter */}
         <Card className="p-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input label="Dari tanggal" type="date" name="fromDate" />
             <Input label="Sampai tanggal" type="date" name="toDate" />
             <Select label="Status" name="status" defaultValue="all">

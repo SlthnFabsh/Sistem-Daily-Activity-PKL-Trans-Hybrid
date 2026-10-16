@@ -9,9 +9,8 @@ export default async function HrdAbsensiPage(props: {
   await requireAdminOrHrd();
 
   const searchParams = await props.searchParams;
-  const { items, students, activeFilters } = await loadAttendanceReview({
-    searchParams,
-  });
+  const { items, students, activeFilters, pagination } =
+    await loadAttendanceReview({ searchParams });
 
   return (
     <>
@@ -23,6 +22,7 @@ export default async function HrdAbsensiPage(props: {
         items={items}
         students={students}
         activeFilters={activeFilters}
+        pagination={pagination}
       />
     </>
   );

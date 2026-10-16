@@ -3,8 +3,8 @@ import type { Role } from "@/generated/prisma/client";
 import { NAV_ITEMS, roleLabel } from "@/lib/navigation";
 import type { SessionUser } from "@/lib/permissions";
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { initialsOf } from "@/lib/initials";
 import { BottomNav } from "./bottom-nav";
+import { MobileNav } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
 
 export function AppShell({
@@ -32,9 +32,7 @@ export function AppShell({
             </p>
             <p className="text-[11px] text-text-muted">{roleLabel(role)}</p>
           </div>
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-            {initialsOf(displayName)}
-          </span>
+          <MobileNav items={items} userName={displayName} userRole={role} />
         </div>
       </header>
 

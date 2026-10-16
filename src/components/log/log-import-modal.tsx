@@ -178,7 +178,7 @@ export function LogImportModal({
                     {state.imported} berhasil · {state.failed} gagal
                   </span>
                 </div>
-                <div className="max-h-48 overflow-y-auto rounded-xl border border-border">
+                <div className="max-h-48 overflow-x-auto overflow-y-auto rounded-xl border border-border">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 text-text-muted">
                       <tr>

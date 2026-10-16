@@ -238,6 +238,7 @@ export function LogReviewManager({
   students,
   activeFilters,
   divisionName,
+  truncatedSubmitted = false,
 }: {
   logs: LogReviewItem[];
   pendingLogs?: LogReviewItem[];
@@ -249,6 +250,8 @@ export function LogReviewManager({
     toDate?: string;
   };
   divisionName?: string;
+  /** true bila daftar log terkirim dipotong (ada data lebih lama di server). */
+  truncatedSubmitted?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -430,6 +433,12 @@ export function LogReviewManager({
                     : ""}
                   )
                 </span>
+              )}
+              {truncatedSubmitted && (
+                <p className="mt-1 text-amber-600">
+                  Hanya {logs.length} log terbaru yang ditampilkan. Persempit
+                  dengan filter tanggal atau siswa untuk melihat yang lain.
+                </p>
               )}
             </div>
             {divisionName && (

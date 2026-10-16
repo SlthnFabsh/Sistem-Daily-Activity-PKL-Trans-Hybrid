@@ -1,8 +1,16 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
-import { CalendarCheck, Filter, MapPin, RotateCcw } from "lucide-react";
+import {
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  MapPin,
+  RotateCcw,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,9 +19,15 @@ import { Select } from "@/components/ui/select";
 import { AttendancePhoto } from "./attendance-photo";
 import type {
   AttendanceActiveFilters,
+  AttendancePagination,
   AttendanceReviewItem,
   AttendanceStudentOption,
 } from "./types";
+
+const NAV_BTN =
+  "inline-flex items-center gap-1 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-text shadow-sm transition-colors hover:border-primary/30 hover:bg-primary-soft hover:text-primary";
+const NAV_BTN_DISABLED =
+  "inline-flex items-center gap-1 rounded-xl border border-border bg-surface-muted px-3 py-2 text-xs font-semibold text-text-muted opacity-60";
 
 const STATUS_LABEL: Record<AttendanceReviewItem["status"], string> = {
   HADIR: "Hadir",
@@ -93,11 +107,13 @@ export function AttendanceReview({
   items,
   students,
   activeFilters,
+  pagination,
   divisionName,
 }: {
   items: AttendanceReviewItem[];
   students: AttendanceStudentOption[];
   activeFilters: AttendanceActiveFilters;
+  pagination: AttendancePagination;
   divisionName?: string;
 }) {
   const router = useRouter();
@@ -134,6 +150,29 @@ export function AttendanceReview({
   }
 
   const selectedStudent = students.find((s) => s.id === activeFilters.studentId);
+
+  // Parameter filter yang sudah diterapkan (dipakai untuk tautan paginasi).
+  const appliedParams = new URLSearchParams();
+  if (activeFilters.studentId) appliedParams.set("studentId", activeFilters.studentId);
+  if (activeFilters.status) appliedParams.set("status", activeFilters.status);
+  if (activeFilters.fromDate) appliedParams.set("fromDate", activeFilters.fromDate);
+  if (activeFilters.toDate) appliedParams.set("toDate", activeFilters.toDate);
+
+  function pageHref(target: number): string {
+    const params = new URLSearchParams(appliedParams.toString());
+    if (target > 1) params.set("page", String(target));
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  }
+
+  const rangeStart =
+    pagination.total === 0
+      ? 0
+      : (pagination.page - 1) * pagination.perPage + 1;
+  const rangeEnd = Math.min(
+    pagination.page * pagination.perPage,
+    pagination.total
+  );
 
   return (
     <div className="space-y-5">
@@ -205,8 +244,17 @@ export function AttendanceReview({
       {/* Ringkasan */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-text-muted">
         <span>
-          Menampilkan <strong className="text-text">{items.length}</strong>{" "}
-          data absensi
+          {pagination.total === 0 ? (
+            <>Tidak ada data absensi</>
+          ) : (
+            <>
+              Menampilkan{" "}
+              <strong className="text-text">
+                {rangeStart}–{rangeEnd}
+              </strong>{" "}
+              dari <strong className="text-text">{pagination.total}</strong> data
+            </>
+          )}
           {hasActiveFilter && (
             <span className="ml-2 text-primary">
               (Filter aktif:{" "}
@@ -297,6 +345,34 @@ export function AttendanceReview({
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          {pagination.page > 1 ? (
+            <Link href={pageHref(pagination.page - 1)} className={NAV_BTN}>
+              <ChevronLeft className="h-3.5 w-3.5" /> Sebelumnya
+            </Link>
+          ) : (
+            <span className={NAV_BTN_DISABLED}>
+              <ChevronLeft className="h-3.5 w-3.5" /> Sebelumnya
+            </span>
+          )}
+
+          <span className="text-xs font-medium text-text-muted">
+            Halaman {pagination.page} / {pagination.totalPages}
+          </span>
+
+          {pagination.page < pagination.totalPages ? (
+            <Link href={pageHref(pagination.page + 1)} className={NAV_BTN}>
+              Berikutnya <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : (
+            <span className={NAV_BTN_DISABLED}>
+              Berikutnya <ChevronRight className="h-3.5 w-3.5" />
+            </span>
+          )}
         </div>
       )}
     </div>

@@ -18,6 +18,9 @@ function formatFileSize(bytes: number): string {
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+// Batas baris log terkirim yang dirender sekaligus (halaman tetap ringan).
+const SUBMITTED_LIMIT = 300;
+
 export default async function HrdLogPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
@@ -88,6 +91,8 @@ export default async function HrdLogPage(props: {
       },
       include: includeClause,
       orderBy: [{ logDate: "desc" }, { submittedAt: "desc" }],
+      // Batasi jumlah baris supaya halaman tetap ringan di dataset besar.
+      take: SUBMITTED_LIMIT + 1,
     }),
     // PENDING_REVIEW: semua tanpa filter tanggal, tapi bisa filter per siswa
     prisma.activityLog.findMany({
@@ -175,7 +180,8 @@ export default async function HrdLogPage(props: {
     };
   }
 
-  const submittedItems = submittedLogs.map((l) => toViewItem(l, "SUBMITTED"));
+  const submittedItems = submittedLogs.slice(0, SUBMITTED_LIMIT).map((l) => toViewItem(l, "SUBMITTED"));
+  const truncatedSubmitted = submittedLogs.length > SUBMITTED_LIMIT;
   const pendingItems = pendingLogs.map((l) => toViewItem(l, "PENDING_REVIEW"));
 
 
@@ -211,6 +217,7 @@ export default async function HrdLogPage(props: {
           fromDate: validFromDate,
           toDate: validToDate,
         }}
+        truncatedSubmitted={truncatedSubmitted}
       />
     </>
   );

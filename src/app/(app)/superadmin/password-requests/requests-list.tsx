@@ -132,11 +132,14 @@ export function RequestsList({ requests }: { requests: RequestItem[] }) {
 
 function ExpandedDetail({ request, onClose }: { request: RequestItem | undefined; onClose: () => void }) {
   if (!request) return null;
+  return <ExpandedDetailPanel request={request} onClose={onClose} />;
+}
 
+function ExpandedDetailPanel({ request, onClose }: { request: RequestItem; onClose: () => void }) {
   const req = request;
 
   const [state, formAction, pending] = useActionForm(fulfillResetPassword, initialState);
-  const { notice, error, setNotice, setError, dismiss } = useActionFeedback(state);
+  const { notice, error, setNotice, setError } = useActionFeedback(state);
   const [copied, setCopied] = useState(false);
 
   async function runCancel() {

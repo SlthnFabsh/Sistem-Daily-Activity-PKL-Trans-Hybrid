@@ -2,8 +2,18 @@ import type { NextAuthRequest } from "next-auth";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { homePathForRole } from "@/lib/permissions";
+import type { Role } from "@/generated/prisma/client";
 
-const PROTECTED_PREFIXES = ["/student", "/mentor", "/hrd"];
+const PROTECTED_PREFIXES = ["/student", "/mentor", "/hrd", "/superadmin"];
+
+// Area yang boleh dibuka tiap role. SUPERADMIN boleh masuk /hrd karena
+// beberapa halaman admin (divisi, periode, dsb.) memang berada di bawah /hrd.
+const ROLE_PREFIXES: Record<Role, string[]> = {
+  STUDENT: ["/student"],
+  MENTOR: ["/mentor"],
+  HRD: ["/hrd"],
+  SUPERADMIN: ["/superadmin", "/hrd"],
+};
 
 // Next.js 16: middleware kini disebut "proxy". Berlaku untuk semua rute aplikasi.
 export default auth((req: NextAuthRequest) => {
@@ -34,7 +44,7 @@ export default auth((req: NextAuthRequest) => {
 
   // Blokir akses lintas role: mentor tidak boleh buka /student, dst.
   const prefix = PROTECTED_PREFIXES.find((p) => path.startsWith(p));
-  if (prefix && prefix !== homePathForRole(role)) {
+  if (prefix && !ROLE_PREFIXES[role].includes(prefix)) {
     return NextResponse.redirect(new URL(homePathForRole(role), nextUrl));
   }
 

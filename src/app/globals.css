@@ -38,28 +38,44 @@
   --radius-xl: 0.8rem;
   --radius-2xl: 1rem;
 
-  --animate-fade-up: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-up: fade-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Hanya menggeser (tanpa opacity) supaya konten tidak pernah "hilang"
+   bila animasi tidak sempat berjalan (mis. tab di latar belakang). */
 @keyframes fade-up {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
 
 html {
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background-color: var(--color-surface-muted);
   color: var(--color-text);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  /* Jaring pengaman: teks panjang tanpa spasi (email, URL) tidak
+     membuat halaman melebar ke samping di layar HP. */
+  overflow-wrap: break-word;
+}
+
+/* iOS Safari memperbesar halaman saat fokus ke input ber-font < 16px.
+   Di layar kecil, besarkan sedikit agar tidak "zoom" mendadak. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+    line-height: 1.4;
+  }
 }
 
 ::selection {

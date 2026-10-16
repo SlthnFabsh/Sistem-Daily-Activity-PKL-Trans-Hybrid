@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { AttendanceStatus } from "@/generated/prisma/client";
 import { formatWibDate, formatWibTime, getWibDateParts } from "@/lib/time";
 import type {
+  AttendancePagination,
   AttendanceReviewItem,
   AttendanceStudentOption,
 } from "@/components/attendance/types";
@@ -11,6 +12,9 @@ import type {
 // dan pemetaan data ke bentuk yang aman dikirim ke komponen client.
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+// Dibuat kecil supaya DOM tetap ringan (tiap data memuat foto + peta).
+const PER_PAGE = 12;
 
 const STATUS_VALUES: AttendanceStatus[] = [
   AttendanceStatus.HADIR,
@@ -32,6 +36,7 @@ export type AttendanceReviewData = {
     fromDate?: string;
     toDate?: string;
   };
+  pagination: AttendancePagination;
 };
 
 function pad(value: number): string {
@@ -42,6 +47,13 @@ function readParam(
   value: string | string[] | undefined
 ): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function readIntParam(value: string | string[] | undefined): number | undefined {
+  const raw = readParam(value);
+  if (!raw) return undefined;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 export async function loadAttendanceReview(options: {
@@ -55,6 +67,7 @@ export async function loadAttendanceReview(options: {
   const rawStatus = readParam(searchParams.status);
   const rawFromDate = readParam(searchParams.fromDate);
   const rawToDate = readParam(searchParams.toDate);
+  const rawPage = readIntParam(searchParams.page);
 
   // Daftar siswa yang boleh dilihat aktor (semua untuk HRD, hanya divisi untuk mentor).
   const studentRows = await prisma.student.findMany({
@@ -117,6 +130,10 @@ export async function loadAttendanceReview(options: {
   if (Object.keys(placementScope).length > 0) where.placement = placementScope;
   if (validStatus) where.status = validStatus;
 
+  const total = await prisma.attendance.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const page = Math.min(rawPage ?? 1, totalPages);
+
   const rows = await prisma.attendance.findMany({
     where,
     include: {
@@ -131,7 +148,8 @@ export async function loadAttendanceReview(options: {
       { attDate: "desc" },
       { placement: { student: { user: { name: "asc" } } } },
     ],
-    take: 500,
+    skip: (page - 1) * PER_PAGE,
+    take: PER_PAGE,
   });
 
   const items: AttendanceReviewItem[] = rows.map((row) => ({
@@ -165,6 +183,12 @@ export async function loadAttendanceReview(options: {
       status: validStatus,
       fromDate,
       toDate,
+    },
+    pagination: {
+      page,
+      perPage: PER_PAGE,
+      total,
+      totalPages,
     },
   };
 }

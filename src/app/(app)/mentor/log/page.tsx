@@ -17,6 +17,9 @@ function formatFileSize(bytes: number): string {
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+// Batas baris log terkirim yang dirender sekaligus (halaman tetap ringan).
+const SUBMITTED_LIMIT = 300;
+
 export default async function MentorLogPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
@@ -143,9 +146,13 @@ export default async function MentorLogPage(props: {
       },
     },
     orderBy: [{ logDate: "desc" }, { submittedAt: "desc" }],
+    // Batasi jumlah baris supaya halaman tetap ringan di dataset besar.
+    take: SUBMITTED_LIMIT + 1,
   });
 
-  const viewItems: LogReviewItem[] = logs.map((l) => ({
+  const truncatedSubmitted = logs.length > SUBMITTED_LIMIT;
+
+  const viewItems: LogReviewItem[] = logs.slice(0, SUBMITTED_LIMIT).map((l) => ({
     id: l.id,
     logDate: l.logDate.toISOString(),
     formattedDate: formatWibDate(l.logDate),
@@ -193,6 +200,7 @@ export default async function MentorLogPage(props: {
           toDate: validToDate,
         }}
         divisionName={mentor.division.name}
+        truncatedSubmitted={truncatedSubmitted}
       />
     </>
   );
