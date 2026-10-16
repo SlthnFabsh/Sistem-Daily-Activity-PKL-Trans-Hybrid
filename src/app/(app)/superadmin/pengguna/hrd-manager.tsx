@@ -8,6 +8,7 @@ import { deleteHrd, resetHrdPassword } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
 import { X } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -80,7 +81,7 @@ export function HrdManager({ hrds }: HrdManagerProps) {
   }
 
   return (
-    <>
+    <div className="space-y-4">
       {!formOpen && (
         <Button onClick={openCreate}>
           Tambah HRD
@@ -129,8 +130,8 @@ export function HrdManager({ hrds }: HrdManagerProps) {
         </Card>
       )}
 
-      {notice && <div className="p-3 rounded-lg bg-green-50 text-sm text-green-800">{notice}</div>}
-      {error && <div className="p-3 rounded-lg bg-red-50 text-sm text-red-800">{error}</div>}
+      {notice && <Notice tone="success">{notice}</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
 
       {deleteFormOpen && (
         <Card className="p-4">
@@ -153,8 +154,8 @@ export function HrdManager({ hrds }: HrdManagerProps) {
           </div>
         </Card>
       )}
-      {deleteNotice && <div className="p-3 rounded-lg bg-green-50 text-sm text-green-800">{deleteNotice}</div>}
-      {deleteError && <div className="p-3 rounded-lg bg-red-50 text-sm text-red-800">{deleteError}</div>}
+      {deleteNotice && <Notice tone="success">{deleteNotice}</Notice>}
+      {deleteError && <Notice tone="error">{deleteError}</Notice>}
 
       {resetFormOpen && (
         <Card className="p-4">
@@ -177,8 +178,8 @@ export function HrdManager({ hrds }: HrdManagerProps) {
           </div>
         </Card>
       )}
-      {resetNotice && <div className="p-3 rounded-lg bg-green-50 text-sm text-green-800">{resetNotice}</div>}
-      {resetError && <div className="p-3 rounded-lg bg-red-50 text-sm text-red-800">{resetError}</div>}
+      {resetNotice && <Notice tone="success">{resetNotice}</Notice>}
+      {resetError && <Notice tone="error">{resetError}</Notice>}
 
       {hrds.length === 0 ? (
         <Card className="py-10 text-center">
@@ -187,7 +188,7 @@ export function HrdManager({ hrds }: HrdManagerProps) {
       ) : (
         <Card className="hidden overflow-hidden md:block">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase text-text-muted">
+            <thead className="bg-surface-muted text-xs font-semibold uppercase text-text-muted">
               <tr>
                 <th className="px-4 py-2.5">Nama</th>
                 <th className="px-4 py-2.5">Email</th>
@@ -245,6 +246,6 @@ export function HrdManager({ hrds }: HrdManagerProps) {
           </Card>
         ))}
       </div>
-    </>
+    </div>
   );
 }

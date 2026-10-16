@@ -44,11 +44,13 @@ export default async function SuperadminPenggunaPage() {
         description="Kelola akun pembimbing (PIC), HRD, dan akun lainnya."
       />
       <div className="space-y-8">
-        <section>
-          <h2 className="text-lg font-semibold text-text">Pembimbing & PIC</h2>
-          <p className="text-sm text-text-muted">
-            Tambah, edit, atau hapus pembimbing dan penanggung jawab divisi (PIC).
-          </p>
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-text">Pembimbing & PIC</h2>
+            <p className="text-sm text-text-muted">
+              Tambah, edit, atau hapus pembimbing dan penanggung jawab divisi (PIC).
+            </p>
+          </div>
           <MentorManager
             mentors={mentorView}
             divisions={divisionOptions}
@@ -56,11 +58,13 @@ export default async function SuperadminPenggunaPage() {
           />
         </section>
 
-        <section>
-          <h2 className="text-lg font-semibold text-text">HRD</h2>
-          <p className="text-sm text-text-muted">
-            Kelola akun HRD. Hanya superadmin yang dapat membuat atau menghapus akun HRD.
-          </p>
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-text">HRD</h2>
+            <p className="text-sm text-text-muted">
+              Kelola akun HRD. Hanya superadmin yang dapat membuat atau menghapus akun HRD.
+            </p>
+          </div>
           <HrdManager hrds={hrds} />
         </section>
       </div>

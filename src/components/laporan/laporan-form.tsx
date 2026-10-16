@@ -96,7 +96,7 @@ export function LaporanForm({
       <form onSubmit={handleDownload} className="space-y-4">
         {/* Pilih siswa (hanya untuk HRD & Mentor) */}
         {singleStudent ? (
-          <div className="rounded-xl border border-border bg-slate-50 p-3">
+          <div className="rounded-xl border border-border bg-surface-muted p-3">
             <p className="text-xs text-text-muted">Siswa</p>
             <p className="mt-0.5 text-sm font-semibold text-text">
               {selectedStudent?.name ?? "-"}

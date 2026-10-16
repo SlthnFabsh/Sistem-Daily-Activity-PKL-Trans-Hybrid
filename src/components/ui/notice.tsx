@@ -1,9 +1,10 @@
 import { clsx } from "clsx";
 
-type Tone = "info" | "error";
+type Tone = "info" | "success" | "error";
 
 const tones: Record<Tone, string> = {
   info: "border border-primary/15 bg-primary-soft text-primary-strong",
+  success: "border border-success/20 bg-success-soft text-success",
   error: "border border-danger/20 bg-danger-soft text-danger",
 };
 

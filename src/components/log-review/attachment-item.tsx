@@ -51,7 +51,7 @@ export function AttachmentItem({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-border bg-slate-50 p-3 text-xs text-text-muted">
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted p-3 text-xs text-text-muted">
         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
         <span className="truncate">
           Memuat tautan ({attachment.fileName})...
@@ -62,7 +62,7 @@ export function AttachmentItem({
 
   if (error || !signedUrl) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+      <div className="rounded-xl border border-danger/25 bg-danger-soft p-3 text-xs text-danger">
         <p className="font-medium truncate">{attachment.fileName}</p>
         <p className="mt-0.5">{error ?? "Lampiran tidak dapat diakses."}</p>
       </div>
@@ -72,7 +72,7 @@ export function AttachmentItem({
   if (isImage) {
     return (
       <div className="overflow-hidden rounded-xl border border-border bg-white">
-        <div className="relative flex aspect-video max-h-56 w-full items-center justify-center overflow-hidden bg-slate-100">
+        <div className="relative flex aspect-video max-h-56 w-full items-center justify-center overflow-hidden bg-surface-muted">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={signedUrl}

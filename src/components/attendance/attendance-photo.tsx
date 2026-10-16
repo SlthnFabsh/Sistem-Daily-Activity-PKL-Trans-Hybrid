@@ -72,12 +72,12 @@ export function AttendancePhoto({ attendanceId }: { attendanceId: string }) {
       className="overflow-hidden rounded-xl border border-border bg-white"
     >
       {error ? (
-        <div className="flex items-center gap-2 bg-red-50 p-3 text-xs text-red-600">
+        <div className="flex items-center gap-2 bg-danger-soft p-3 text-xs text-danger">
           <ImageOff className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       ) : !signedUrl ? (
-        <div className="flex aspect-video max-h-56 w-full items-center justify-center bg-slate-50">
+        <div className="flex aspect-video max-h-56 w-full items-center justify-center bg-surface-muted">
           <span className="flex items-center gap-2 text-xs text-text-muted">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             Memuat foto absensi...
@@ -85,7 +85,7 @@ export function AttendancePhoto({ attendanceId }: { attendanceId: string }) {
         </div>
       ) : (
         <>
-          <div className="relative flex aspect-video max-h-56 w-full items-center justify-center overflow-hidden bg-slate-100">
+          <div className="relative flex aspect-video max-h-56 w-full items-center justify-center overflow-hidden bg-surface-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={signedUrl}

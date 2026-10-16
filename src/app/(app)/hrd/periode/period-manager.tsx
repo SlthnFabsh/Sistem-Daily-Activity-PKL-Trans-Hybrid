@@ -77,7 +77,7 @@ export function PeriodManager({ periods }: { periods: PeriodView[] }) {
   }
 
   return (
-    <>
+    <div className="space-y-4">
       {!formOpen && (
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" aria-hidden /> Tambah periode
@@ -143,7 +143,7 @@ export function PeriodManager({ periods }: { periods: PeriodView[] }) {
           {/* Desktop */}
           <Card className="hidden overflow-hidden md:block">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase text-text-muted">
+              <thead className="bg-surface-muted text-xs font-semibold uppercase text-text-muted">
                 <tr>
                   <th className="px-4 py-2.5">Nama periode</th>
                   <th className="px-4 py-2.5">Rentang tanggal</th>
@@ -218,6 +218,6 @@ export function PeriodManager({ periods }: { periods: PeriodView[] }) {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

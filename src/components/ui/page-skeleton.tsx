@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 function SkeletonLine({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`h-3 animate-pulse rounded-full bg-slate-200 ${className}`}
+      className={`h-3 animate-pulse rounded-full bg-border ${className}`}
     />
   );
 }
@@ -21,7 +21,7 @@ function SkeletonCard() {
           <SkeletonLine className="w-1/3" />
           <SkeletonLine className="w-1/2" />
         </div>
-        <div className="h-5 w-16 animate-pulse rounded-full bg-slate-200" />
+        <div className="h-5 w-16 animate-pulse rounded-full bg-border" />
       </div>
       <div className="mt-3 space-y-1.5">
         <SkeletonLine className="w-full" />
@@ -48,7 +48,7 @@ function SkeletonTableRow() {
       <SkeletonLine className="w-32" />
       <SkeletonLine className="w-24" />
       <SkeletonLine className="flex-1" />
-      <div className="h-5 w-16 animate-pulse rounded-full bg-slate-200" />
+      <div className="h-5 w-16 animate-pulse rounded-full bg-border" />
     </div>
   );
 }
@@ -61,7 +61,7 @@ function SkeletonFilter() {
         {[1, 2, 3].map((i) => (
           <div key={i} className="space-y-1.5">
             <SkeletonLine className="w-16 h-3" />
-            <div className="h-9 animate-pulse rounded-xl bg-slate-200" />
+            <div className="h-9 animate-pulse rounded-xl bg-border" />
           </div>
         ))}
       </div>
@@ -88,7 +88,7 @@ export function PageSkeleton({
       {showTable ? (
         <Card>
           {/* Header tabel */}
-          <div className="flex items-center gap-4 border-b border-border bg-slate-50 px-4 py-3">
+          <div className="flex items-center gap-4 border-b border-border bg-surface-muted px-4 py-3">
             {[1, 2, 3].map((i) => (
               <SkeletonLine key={i} className="w-24 h-3" />
             ))}

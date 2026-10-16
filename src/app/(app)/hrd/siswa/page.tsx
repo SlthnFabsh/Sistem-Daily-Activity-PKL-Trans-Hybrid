@@ -24,7 +24,7 @@ export default async function HrdSiswaPage() {
       ) : (
         <Card className="hidden overflow-hidden md:block">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase text-text-muted">
+            <thead className="bg-surface-muted text-xs font-semibold uppercase text-text-muted">
               <tr>
                 <th className="px-4 py-2.5">Siswa</th>
                 <th className="px-4 py-2.5">Sekolah</th>

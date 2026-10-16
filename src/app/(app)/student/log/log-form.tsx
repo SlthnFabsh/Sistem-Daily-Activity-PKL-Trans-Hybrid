@@ -202,7 +202,7 @@ export function LogForm({
   if (isLocked) {
     return (
       <Card className="p-4">
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted px-3 py-2.5">
           <Lock className="h-4 w-4 flex-shrink-0 text-text-muted" />
           <p className="text-xs text-text-muted">
             Log ini telah dikunci karena Anda sudah absen pulang. Hubungi HRD
@@ -242,9 +242,9 @@ export function LogForm({
       <Card className="p-4">
         {/* Banner jika log SUBMITTED masih bisa diedit */}
         {isEditableSubmitted && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5">
-            <Pencil className="h-4 w-4 flex-shrink-0 text-blue-600" />
-            <p className="text-xs text-blue-700">
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-info/25 bg-info-soft px-3 py-2.5">
+            <Pencil className="h-4 w-4 flex-shrink-0 text-info" />
+            <p className="text-xs text-info">
               Log ini sudah terkirim tapi masih bisa diedit sebelum Anda absen
               pulang. Klik{" "}
               <strong>&ldquo;Perbarui Log&rdquo;</strong> untuk menyimpan perubahan.
@@ -360,7 +360,7 @@ export function LogForm({
 
           {draftState.fieldErrors &&
             Object.entries(draftState.fieldErrors).map(([field, errors]) => (
-              <p key={field} className="text-xs text-red-600">
+              <p key={field} className="text-xs text-danger">
                 {errors.join(", ")}
               </p>
             ))}
@@ -464,13 +464,13 @@ export function LogForm({
             JPG, PNG, PDF, DOCX, XLSX. Maks 5 MB per file, maks 3 file.
           </p>
           {attachments.length === 0 && logStatus === "DRAFT" && (
-            <p className="mt-1 text-xs text-amber-600">
+            <p className="mt-1 text-xs text-warning">
               Minimal 1 lampiran untuk bisa mengirim log.
             </p>
           )}
 
           {uploadError && (
-            <div className="mt-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm text-red-600">
+            <div className="mt-2 rounded-xl border border-danger/25 bg-white px-4 py-2 text-sm text-danger">
               {uploadError}
             </div>
           )}
@@ -507,7 +507,7 @@ export function LogForm({
                       <button
                         type="button"
                         onClick={() => handleDeleteAttachment(att.id)}
-                        className="rounded-lg px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                        className="rounded-lg px-2 py-1 text-xs text-danger hover:bg-danger-soft"
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
                       </button>

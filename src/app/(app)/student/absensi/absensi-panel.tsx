@@ -100,7 +100,7 @@ export function AbsensiPanel({
                 <option value="SAKIT">Sakit</option>
               </select>
               {leaveState.fieldErrors?.status?.[0] && (
-                <span className="mt-1 block text-xs text-red-600">
+                <span className="mt-1 block text-xs text-danger">
                   {leaveState.fieldErrors.status[0]}
                 </span>
               )}
@@ -114,7 +114,7 @@ export function AbsensiPanel({
                 className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-text outline-none placeholder:text-text-muted/60 focus:border-primary"
               />
               {leaveState.fieldErrors?.note?.[0] && (
-                <span className="mt-1 block text-xs text-red-600">
+                <span className="mt-1 block text-xs text-danger">
                   {leaveState.fieldErrors.note[0]}
                 </span>
               )}
@@ -153,13 +153,13 @@ export function AbsensiPanel({
           {isPresent && today.checkOut && (
             <div className="space-y-2">
               {!hasLogToday && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-                  <p className="text-xs font-medium text-amber-700">
+                <div className="rounded-xl border border-warning/30 bg-warning-soft px-3 py-2.5">
+                  <p className="text-xs font-medium text-warning">
                     ⚠️ Anda belum mengirim log aktivitas hari ini
                   </p>
-                  <p className="mt-0.5 text-xs text-amber-600">
+                  <p className="mt-0.5 text-xs text-warning">
                     Silakan isi dan kirim log aktivitas di menu{" "}
-                    <a href="/student/log" className="font-semibold underline hover:text-amber-800">
+                    <a href="/student/log" className="font-semibold underline hover:text-warning">
                       Log Aktivitas
                     </a>{" "}
                     terlebih dahulu sebelum absen pulang.
@@ -452,8 +452,8 @@ function CheckInWithMedia({
           {lat && lng ? "Lokasi tersetel" : "Ambil GPS"}
         </Button>
 
-        {geoError && <p className="mt-1 text-xs text-red-600">{geoError}</p>}
-        {cameraError && <p className="mt-1 text-xs text-red-600">{cameraError}</p>}
+        {geoError && <p className="mt-1 text-xs text-danger">{geoError}</p>}
+        {cameraError && <p className="mt-1 text-xs text-danger">{cameraError}</p>}
       </label>
 
       {preview && (
@@ -467,7 +467,7 @@ function CheckInWithMedia({
       )}
 
       {lat && lng && (
-        <div className="rounded-xl border border-border bg-slate-50 px-3 py-2 text-sm">
+        <div className="rounded-xl border border-border bg-surface-muted px-3 py-2 text-sm">
           <p className="text-xs text-text-muted">Koordinat</p>
           <p className="font-mono text-text">{lat}°, {lng}°</p>
         </div>
@@ -769,8 +769,8 @@ function CheckOutWithMedia({
           {lat && lng ? "Lokasi tersetel" : "Ambil GPS"}
         </Button>
 
-        {geoError && <p className="mt-1 text-xs text-red-600">{geoError}</p>}
-        {cameraError && <p className="mt-1 text-xs text-red-600">{cameraError}</p>}
+        {geoError && <p className="mt-1 text-xs text-danger">{geoError}</p>}
+        {cameraError && <p className="mt-1 text-xs text-danger">{cameraError}</p>}
       </label>
 
       {preview && (
@@ -784,7 +784,7 @@ function CheckOutWithMedia({
       )}
 
       {lat && lng && (
-        <div className="rounded-xl border border-border bg-slate-50 px-3 py-2 text-sm">
+        <div className="rounded-xl border border-border bg-surface-muted px-3 py-2 text-sm">
           <p className="text-xs text-text-muted">Koordinat</p>
           <p className="font-mono text-text">
             {lat}°, {lng}°

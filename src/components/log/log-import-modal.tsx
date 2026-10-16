@@ -72,7 +72,7 @@ export function LogImportModal({
             type="button"
             onClick={onClose}
             disabled={pending}
-            className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-slate-100 hover:text-text disabled:opacity-50"
+            className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-surface-muted hover:text-text disabled:opacity-50"
             aria-label="Tutup"
           >
             <X className="h-5 w-5" />
@@ -82,7 +82,7 @@ export function LogImportModal({
         {/* Form Body */}
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {/* Info panduan & Unduh template */}
-          <div className="rounded-xl border border-border bg-slate-50 p-3.5 text-xs text-text">
+          <div className="rounded-xl border border-border bg-surface-muted p-3.5 text-xs text-text">
             <p className="font-semibold text-text">Format File Excel (.xlsx)</p>
             <p className="mt-1 text-text-muted leading-relaxed">
               File harus memuat kolom:{" "}
@@ -180,7 +180,7 @@ export function LogImportModal({
                 </div>
                 <div className="max-h-48 overflow-x-auto overflow-y-auto rounded-xl border border-border">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-text-muted">
+                    <thead className="bg-surface-muted text-text-muted">
                       <tr>
                         <th className="px-3 py-2">Baris</th>
                         <th className="px-3 py-2">Tanggal / Tugas</th>

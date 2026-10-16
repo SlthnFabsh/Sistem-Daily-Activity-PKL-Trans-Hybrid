@@ -46,7 +46,7 @@ export function LogDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-slate-100 hover:text-text"
+            className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
             aria-label="Tutup"
           >
             <X className="h-5 w-5" />
@@ -69,7 +69,7 @@ export function LogDetailModal({
           </div>
 
           {/* Kartu Ringkasan Informasi Siswa & Waktu */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-border bg-slate-50/70 p-3.5 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-border bg-surface-muted/70 p-3.5 text-xs">
             <div>
               <p className="text-text-muted">Nama Siswa</p>
               <p className="mt-0.5 font-semibold text-text">{log.student.name}</p>

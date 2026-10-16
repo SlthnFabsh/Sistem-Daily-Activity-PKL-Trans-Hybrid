@@ -56,7 +56,7 @@ export function RequestsList({ requests }: { requests: RequestItem[] }) {
       ) : (
         <Card className="hidden overflow-hidden md:block">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase text-text-muted">
+            <thead className="bg-surface-muted text-xs font-semibold uppercase text-text-muted">
               <tr>
                 <th className="px-4 py-2.5">Pengguna</th>
                 <th className="px-4 py-2.5">Role</th>

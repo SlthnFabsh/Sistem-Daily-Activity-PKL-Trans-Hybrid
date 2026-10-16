@@ -61,7 +61,7 @@ export function DivisionManager({ divisions }: { divisions: Division[] }) {
   }
 
   return (
-    <>
+    <div className="space-y-4">
       {!formOpen && (
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" aria-hidden /> Tambah divisi
@@ -111,7 +111,7 @@ export function DivisionManager({ divisions }: { divisions: Division[] }) {
           {/* Desktop */}
           <Card className="hidden overflow-hidden md:block">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase text-text-muted">
+              <thead className="bg-surface-muted text-xs font-semibold uppercase text-text-muted">
                 <tr>
                   <th className="px-4 py-2.5">Nama divisi</th>
                   <th className="px-4 py-2.5 text-right">Aksi</th>
@@ -175,6 +175,6 @@ export function DivisionManager({ divisions }: { divisions: Division[] }) {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

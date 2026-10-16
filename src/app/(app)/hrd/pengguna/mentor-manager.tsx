@@ -93,7 +93,7 @@ export function MentorManager({
   }
 
   return (
-    <>
+    <div className="space-y-4">
       {!formOpen && (
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" aria-hidden /> Tambah pembimbing
@@ -155,7 +155,7 @@ export function MentorManager({
               Penanggung jawab divisi (PIC)
             </label>
             {state.fieldErrors?.isPic?.[0] && (
-              <p className="text-xs text-red-600">
+              <p className="text-xs text-danger">
                 {state.fieldErrors.isPic[0]}
               </p>
             )}
@@ -182,7 +182,7 @@ export function MentorManager({
           {/* Desktop */}
           <Card className="hidden overflow-hidden md:block">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase text-text-muted">
+              <thead className="bg-surface-muted text-xs font-semibold uppercase text-text-muted">
                 <tr>
                   <th className="px-4 py-2.5">Pembimbing</th>
                   <th className="px-4 py-2.5">Divisi</th>
@@ -301,6 +301,6 @@ export function MentorManager({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

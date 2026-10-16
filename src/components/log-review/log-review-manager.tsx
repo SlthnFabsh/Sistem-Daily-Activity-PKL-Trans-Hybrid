@@ -51,7 +51,7 @@ function DeleteAllStudentLogsButton({
     return (
       <div className="flex items-center gap-2">
         {state.message && !state.ok && (
-          <span className="text-xs text-red-600">{state.message}</span>
+          <span className="text-xs text-danger">{state.message}</span>
         )}
         <form action={formAction}>
           <input type="hidden" name="studentId" value={studentId} />
@@ -105,7 +105,7 @@ function DeleteLogButton({ logId }: { logId: string }) {
     return (
       <div className="flex items-center gap-2">
         {state.message && !state.ok && (
-          <span className="text-xs text-red-600">{state.message}</span>
+          <span className="text-xs text-danger">{state.message}</span>
         )}
         <form action={formAction}>
           <input type="hidden" name="logId" value={logId} />
@@ -192,7 +192,7 @@ function RejectLogButton({ logId }: { logId: string }) {
     return (
       <div className="flex items-center gap-2">
         {state.message && !state.ok && (
-          <span className="text-xs text-red-600">{state.message}</span>
+          <span className="text-xs text-danger">{state.message}</span>
         )}
         <form action={formAction}>
           <input type="hidden" name="logId" value={logId} />
@@ -223,7 +223,7 @@ function RejectLogButton({ logId }: { logId: string }) {
       type="button"
       variant="secondary"
       onClick={() => setConfirm(true)}
-      className="text-xs text-red-600 hover:bg-red-50"
+      className="text-xs text-danger hover:bg-danger-soft"
     >
       <XCircle className="h-3.5 w-3.5" /> Tolak
     </Button>
@@ -299,7 +299,7 @@ export function LogReviewManager({
   return (
     <div className="space-y-5">
       {/* Tab switcher */}
-      <div className="flex gap-1 rounded-xl border border-border bg-slate-50 p-1">
+      <div className="flex gap-1 rounded-xl border border-border bg-surface-muted p-1">
         <button
           type="button"
           onClick={() => setActiveTab("submitted")}
@@ -316,13 +316,13 @@ export function LogReviewManager({
           onClick={() => setActiveTab("pending")}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "pending"
-              ? "bg-white text-amber-600 shadow-sm"
+              ? "bg-white text-warning shadow-sm"
               : "text-text-muted hover:text-text"
           }`}
         >
           Perlu Persetujuan
           {pendingLogs.length > 0 && (
-            <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs font-bold text-amber-700">
+            <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-soft px-1.5 text-xs font-bold text-warning">
               {pendingLogs.length}
             </span>
           )}
@@ -390,10 +390,10 @@ export function LogReviewManager({
         activeFilters.studentId &&
         activeFilters.studentId !== "all" &&
         selectedStudentObj && (
-          <Card className="p-4 border-red-200 bg-red-50/40">
+          <Card className="p-4 border-danger/25 bg-danger-soft/40">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs text-text">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <AlertTriangle className="h-4 w-4 text-danger" />
                 <span className="font-medium">Hapus Semua Log untuk Siswa Ini</span>
               </div>
               <DeleteAllStudentLogsButton
@@ -435,7 +435,7 @@ export function LogReviewManager({
                 </span>
               )}
               {truncatedSubmitted && (
-                <p className="mt-1 text-amber-600">
+                <p className="mt-1 text-warning">
                   Hanya {logs.length} log terbaru yang ditampilkan. Persempit
                   dengan filter tanggal atau siswa untuk melihat yang lain.
                 </p>
@@ -512,7 +512,7 @@ export function LogReviewManager({
                     </div>
                   </div>
 
-                  <div className="mt-2.5 rounded-lg bg-slate-50 p-2.5">
+                  <div className="mt-2.5 rounded-lg bg-surface-muted p-2.5">
                     <p className="line-clamp-2 text-xs text-text leading-relaxed">
                       {log.description}
                     </p>
@@ -543,7 +543,7 @@ export function LogReviewManager({
         <>
           {pendingLogs.length === 0 ? (
             <Card className="py-12 text-center">
-              <CheckCircle className="mx-auto h-10 w-10 text-green-400" />
+              <CheckCircle className="mx-auto h-10 w-10 text-success" />
               <p className="mt-3 text-sm font-medium text-text">
                 Tidak ada log yang menunggu persetujuan
               </p>
@@ -582,7 +582,7 @@ export function LogReviewManager({
                 {pendingLogs.map((log) => (
                   <Card
                     key={log.id}
-                    className="border-amber-200 p-4 transition-colors"
+                    className="border-warning/30 p-4 transition-colors"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-1">
@@ -619,7 +619,7 @@ export function LogReviewManager({
                       </div>
                     </div>
 
-                    <div className="mt-2.5 rounded-lg bg-amber-50 p-2.5">
+                    <div className="mt-2.5 rounded-lg bg-warning-soft p-2.5">
                       <p className="line-clamp-2 text-xs text-text leading-relaxed">
                         {log.description}
                       </p>

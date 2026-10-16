@@ -55,7 +55,7 @@ export function Sidebar({
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
                   active
                     ? "bg-white/20 text-white"
-                    : "bg-slate-100 text-text-muted group-hover:bg-white group-hover:text-primary"
+                    : "bg-surface-muted text-text-muted group-hover:bg-white group-hover:text-primary"
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden />
