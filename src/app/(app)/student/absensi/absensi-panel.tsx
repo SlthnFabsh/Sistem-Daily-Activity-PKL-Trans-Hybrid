@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useActionForm } from "@/lib/use-action-form";
 import { LogIn, LogOut } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
@@ -190,11 +190,16 @@ function CheckInWithMedia({
   const [geoError, setGeoError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [camActive, setCamActive] = useState(false);
+  const localStream = useRef<MediaStream | null>(null);
 
   async function openCamera() {
     setCameraError(null);
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError("Browser tidak mendukung akses kamera.");
+      return;
+    }
+    if (camActive) {
+      setCameraError("Kamera sudah dibuka.");
       return;
     }
     try {
@@ -205,24 +210,27 @@ function CheckInWithMedia({
           height: { ideal: 720 },
         },
       });
+      localStream.current = stream;
       const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
       if (video) {
         video.srcObject = stream;
         await video.play();
       }
       setCamActive(true);
-      (window as any).__checkinStream = stream;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.message ||
-        (err instanceof Error ? err.message : "Gagal membuka kamera.");
+        err && typeof err === "object" && "message" in err
+          ? String((err as any).message)
+          : err instanceof Error
+            ? err.message
+            : "Gagal membuka kamera.";
       setCameraError(message);
     }
   }
 
   function capturePhoto() {
     const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
-    if (!video || !video.readyState) {
+    if (!camActive || !video || video.readyState < 2) {
       setCameraError("Kamera belum siap.");
       return;
     }
@@ -237,11 +245,11 @@ function CheckInWithMedia({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(
       (blob) => {
-        if (!blob) {
+        if (!blob || !blob.type?.startsWith("image")) {
           setCameraError("Gagal mengambil foto.");
           return;
         }
-        const file = new File([blob], "selfie.jpg", { type: blob.type || "image/jpeg" });
+        const file = new File([blob], "selfie.jpg", { type: blob.type });
         setFile(file);
         setPreview(URL.createObjectURL(file));
         stopCamera();
@@ -252,10 +260,10 @@ function CheckInWithMedia({
   }
 
   function stopCamera() {
-    const stream = (window as any).__checkinStream as MediaStream | undefined;
+    const stream = localStream.current;
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      (window as any).__checkinStream = undefined;
+      stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+      localStream.current = null;
     }
     setCamActive(false);
     const video = document.getElementById("checkin-video") as HTMLVideoElement | null;
@@ -439,11 +447,16 @@ function CheckOutWithMedia({
   const [geoError, setGeoError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [camActive, setCamActive] = useState(false);
+  const localStream = useRef<MediaStream | null>(null);
 
   async function openCamera() {
     setCameraError(null);
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError("Browser tidak mendukung akses kamera.");
+      return;
+    }
+    if (camActive) {
+      setCameraError("Kamera sudah dibuka.");
       return;
     }
     try {
@@ -454,24 +467,27 @@ function CheckOutWithMedia({
           height: { ideal: 720 },
         },
       });
+      localStream.current = stream;
       const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
       if (video) {
         video.srcObject = stream;
         await video.play();
       }
       setCamActive(true);
-      (window as any).__checkoutStream = stream;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.message ||
-        (err instanceof Error ? err.message : "Gagal membuka kamera.");
+        err && typeof err === "object" && "message" in err
+          ? String((err as any).message)
+          : err instanceof Error
+            ? err.message
+            : "Gagal membuka kamera.";
       setCameraError(message);
     }
   }
 
   function capturePhoto() {
     const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
-    if (!video || !video.readyState) {
+    if (!camActive || !video || video.readyState < 2) {
       setCameraError("Kamera belum siap.");
       return;
     }
@@ -486,11 +502,11 @@ function CheckOutWithMedia({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(
       (blob) => {
-        if (!blob) {
+        if (!blob || !blob.type?.startsWith("image")) {
           setCameraError("Gagal mengambil foto.");
           return;
         }
-        const file = new File([blob], "selfie.jpg", { type: blob.type || "image/jpeg" });
+        const file = new File([blob], "selfie.jpg", { type: blob.type });
         setFile(file);
         setPreview(URL.createObjectURL(file));
         stopCamera();
@@ -501,10 +517,10 @@ function CheckOutWithMedia({
   }
 
   function stopCamera() {
-    const stream = (window as any).__checkoutStream as MediaStream | undefined;
+    const stream = localStream.current;
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      (window as any).__checkoutStream = undefined;
+      stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+      localStream.current = null;
     }
     setCamActive(false);
     const video = document.getElementById("checkout-video") as HTMLVideoElement | null;
