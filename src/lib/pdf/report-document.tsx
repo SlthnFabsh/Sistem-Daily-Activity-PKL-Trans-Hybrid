@@ -1,13 +1,18 @@
 /* eslint-disable jsx-a11y/alt-text */
 // Template dokumen PDF laporan PKL menggunakan @react-pdf/renderer.
 // File ini berjalan di server (route handler) — tidak ada browser API.
-// Komponen React di sini menggunakan primitif PDF (View, Text, Page, Document)
-// bukan elemen HTML.
+//
+// Prinsip desain:
+// - Kertas A4 portrait, margin lega, tipografi kecil namun terbaca.
+// - Monokrom (tinta gelap + abu-abu) dengan satu aksen navy yang dipakai hemat.
+// - Tanpa blok warna mencolok, tanpa ornamen berlebihan.
+// - Kehadiran dan jurnal aktivitas disatukan per tanggal.
 
 import React from "react";
 import {
   Document,
   type DocumentProps,
+  Font,
   Image,
   Page,
   StyleSheet,
@@ -26,193 +31,368 @@ import {
   PDF_SIGNER_2_LABEL,
 } from "@/lib/pdf-constants";
 
-// ─── Warna & ukuran ─────────────────────────────────────
-const PRIMARY = "#0B5CE5";
-const BORDER = "#E2E8F0";
-const TEXT_MAIN = "#0F172A";
-const TEXT_MUTED = "#475569";
-const HEADER_BG = "#EAF1FF";
+// Jangan memenggal kata dengan tanda hubung; teks Indonesia lebih nyaman
+// dibaca apa adanya (pemenggalan hanya di spasi).
+Font.registerHyphenationCallback((word) => [word]);
+
+// ─── Palet & ukuran ──────────────────────────────────────
+const INK = "#111827"; // teks utama
+const MUTED = "#6B7280"; // teks sekunder
+const BORDER = "#D1D5DB"; // garis tabel
+const SOFT = "#F3F4F6"; // latar header tabel
+const ACCENT = "#1E3A8A"; // navy, dipakai sangat sedikit
+
+const PAGE_MARGIN_X = 48;
 
 const s = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 9,
-    color: TEXT_MAIN,
-    paddingTop: 36,
+    fontSize: 8.5,
+    color: INK,
+    paddingTop: 42,
     paddingBottom: 56,
-    paddingHorizontal: 40,
-    lineHeight: 1.5,
+    paddingHorizontal: PAGE_MARGIN_X,
+    lineHeight: 1.45,
   },
-  // ── Kop ──
-  headerRow: {
+
+  // ── Kop surat ──
+  letterhead: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: PRIMARY,
     paddingBottom: 10,
-    marginBottom: 14,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: INK,
   },
   logo: {
-    width: 55,
-    height: 55,
+    width: 44,
+    height: 44,
     objectFit: "contain",
+    marginRight: 12,
   },
   companyName: {
-    fontSize: 16,
     fontFamily: "Helvetica-Bold",
-    color: PRIMARY,
+    fontSize: 14,
+    letterSpacing: 0.2,
+    color: INK,
   },
   companyDetail: {
-    fontSize: 8,
-    color: TEXT_MUTED,
-    marginTop: 2,
+    fontSize: 7.2,
+    color: MUTED,
+    marginTop: 1.2,
   },
-  reportTitle: {
-    fontSize: 11,
+
+  // ── Judul ──
+  titleBlock: {
+    marginTop: 18,
+    alignItems: "center",
+  },
+  title: {
     fontFamily: "Helvetica-Bold",
-    color: PRIMARY,
-    textAlign: "right",
-    marginTop: 2,
+    fontSize: 13,
+    letterSpacing: 1.1,
+    textAlign: "center",
+    color: INK,
   },
-  // ── Section heading ──
+  subtitle: {
+    fontSize: 8.5,
+    color: MUTED,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  titleRule: {
+    width: 46,
+    height: 2,
+    backgroundColor: ACCENT,
+    marginTop: 9,
+  },
+
+  // ── Judul bagian ──
   sectionTitle: {
-    fontSize: 9,
     fontFamily: "Helvetica-Bold",
-    backgroundColor: HEADER_BG,
-    color: PRIMARY,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    marginTop: 12,
-    marginBottom: 6,
+    fontSize: 8.4,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: ACCENT,
+    borderBottomWidth: 0.8,
+    borderBottomColor: BORDER,
+    paddingBottom: 3,
+    marginTop: 16,
+    marginBottom: 7,
   },
-  // ── Info grid (label: value) ──
+
+  // ── Tabel identitas (2 kolom) ──
+  infoTable: {
+    flexDirection: "row",
+    borderTopWidth: 0.8,
+    borderBottomWidth: 0.8,
+    borderColor: BORDER,
+  },
+  infoColumn: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  infoColumnRight: {
+    flex: 1,
+    paddingLeft: 12,
+    borderLeftWidth: 0.8,
+    borderLeftColor: BORDER,
+  },
   infoRow: {
     flexDirection: "row",
-    marginBottom: 2,
+    paddingVertical: 2.6,
   },
   infoLabel: {
-    width: 130,
-    color: TEXT_MUTED,
+    width: 82,
+    fontSize: 7.6,
+    color: MUTED,
   },
   infoColon: {
-    width: 10,
-    color: TEXT_MUTED,
+    width: 8,
+    fontSize: 7.6,
+    color: MUTED,
   },
   infoValue: {
     flex: 1,
-    fontFamily: "Helvetica-Bold",
+    fontSize: 8.2,
+    color: INK,
   },
-  // ── Rekap absensi ──
-  recapGrid: {
-    flexDirection: "row",
-    gap: 6,
-    marginBottom: 4,
-  },
-  recapBox: {
+  infoValueStrong: {
     flex: 1,
-    border: `1 solid ${BORDER}`,
-    borderRadius: 4,
-    padding: 6,
-    alignItems: "center",
-  },
-  recapNum: {
-    fontSize: 14,
+    fontSize: 8.2,
     fontFamily: "Helvetica-Bold",
-    color: PRIMARY,
+    color: INK,
+  },
+
+  // ── Rekap kehadiran ──
+  recap: {
+    borderWidth: 0.8,
+    borderColor: BORDER,
+  },
+  recapHead: {
+    flexDirection: "row",
+    backgroundColor: SOFT,
+    borderBottomWidth: 0.8,
+    borderBottomColor: BORDER,
+  },
+  recapRow: {
+    flexDirection: "row",
+  },
+  recapCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 5,
+    borderRightWidth: 0.8,
+    borderRightColor: BORDER,
+  },
+  recapCellLast: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 5,
   },
   recapLabel: {
-    fontSize: 8,
-    color: TEXT_MUTED,
-    marginTop: 2,
+    fontSize: 7,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    color: MUTED,
   },
-  // ── Tabel aktivitas ──
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: HEADER_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-  },
-  tableRowAlt: {
-    backgroundColor: "#F8FAFC",
-  },
-  colNo: { width: 22, paddingHorizontal: 2 },
-  colDate: { width: 58, paddingHorizontal: 2 },
-  colTime: { width: 42, paddingHorizontal: 2 },
-  colTask: { width: 62, paddingHorizontal: 2 },
-  colDesc: { flex: 1, paddingHorizontal: 2 },
-  colOutput: { width: 72, paddingHorizontal: 2 },
-  colFiles: { width: 64, paddingHorizontal: 2 },
-  headerCell: {
+  recapValue: {
     fontFamily: "Helvetica-Bold",
-    fontSize: 8,
-    color: PRIMARY,
+    fontSize: 13,
+    color: INK,
+    marginTop: 1,
   },
-  cell: { fontSize: 8, color: TEXT_MAIN },
-  cellMuted: { fontSize: 8, color: TEXT_MUTED, fontStyle: "italic" },
-  // ── Tanda tangan ──
-  sigBlock: {
-    marginTop: 32,
+  recapNote: {
+    fontSize: 7,
+    color: MUTED,
+    fontStyle: "italic",
+    marginTop: 3,
+  },
+
+  // ── Grup per tanggal ──
+  dayGroup: {
+    marginTop: 9,
+  },
+  dayHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: SOFT,
+    borderTopWidth: 0.8,
+    borderBottomWidth: 0.8,
+    borderColor: BORDER,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+  },
+  dayDate: {
+    width: "52%",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8.6,
+    color: INK,
+  },
+  dayMeta: {
+    width: "48%",
+    fontSize: 7.6,
+    color: INK,
+    textAlign: "right",
+  },
+  dayMetaStrong: {
+    fontFamily: "Helvetica-Bold",
+  },
+  dayMetaMuted: {
+    color: MUTED,
+  },
+  dayEmpty: {
+    fontSize: 7.6,
+    color: MUTED,
+    fontStyle: "italic",
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: BORDER,
+  },
+
+  // ── Tabel jurnal ──
+  table: {
+    borderBottomWidth: 0.8,
+    borderColor: BORDER,
+  },
+  thRow: {
+    flexDirection: "row",
+    backgroundColor: SOFT,
+    borderBottomWidth: 0.8,
+    borderBottomColor: BORDER,
+  },
+  tr: {
+    flexDirection: "row",
+    borderBottomWidth: 0.5,
+    borderBottomColor: BORDER,
+  },
+  trLast: {
+    flexDirection: "row",
+  },
+  th: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 7,
+    letterSpacing: 0.25,
+    textTransform: "uppercase",
+    color: INK,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  td: {
+    fontSize: 7.6,
+    color: INK,
+    paddingVertical: 3.6,
+    paddingHorizontal: 4,
+  },
+  tdMuted: {
+    fontSize: 7.6,
+    color: MUTED,
+    paddingVertical: 3.6,
+    paddingHorizontal: 4,
+  },
+  tdSub: {
+    fontSize: 7,
+    color: MUTED,
+    marginTop: 1,
+  },
+  emptyBox: {
+    borderWidth: 0.8,
+    borderColor: BORDER,
+    padding: 8,
+  },
+  emptyText: {
+    fontSize: 7.8,
+    color: MUTED,
+    fontStyle: "italic",
+  },
+
+  // Lebar kolom jurnal (tanpa kolom tanggal — tanggal ada di header grup)
+  cNo: { width: 24 },
+  cTime: { width: 56 },
+  cDesc: { flex: 1 },
+  cOutput: { width: 100 },
+  cFiles: { width: 76 },
+
+  // ── Penutup & tanda tangan ──
+  closing: {
+    marginTop: 16,
+    fontSize: 8,
+    color: INK,
+    textAlign: "justify",
+    lineHeight: 1.5,
+  },
+  signatureBlock: {
+    marginTop: 18,
+  },
+  signatureDate: {
+    fontSize: 8.4,
+    color: INK,
+    textAlign: "right",
+    marginBottom: 12,
+  },
+  signatureRow: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  sigBox: {
+  signatureBox: {
     width: "44%",
-    alignItems: "center",
   },
-  sigLocation: {
-    fontSize: 8,
-    color: TEXT_MUTED,
-    marginBottom: 40,
+  signatureRole: {
+    fontSize: 8.4,
+    color: INK,
   },
-  sigName: {
+  signatureLine: {
+    width: 168,
+    borderTopWidth: 0.8,
+    borderTopColor: INK,
+    marginTop: 46,
+    marginBottom: 3,
+  },
+  signatureName: {
     fontFamily: "Helvetica-Bold",
-    borderTopWidth: 1,
-    borderTopColor: TEXT_MUTED,
-    paddingTop: 4,
-    width: "80%",
-    textAlign: "center",
-    fontSize: 9,
+    fontSize: 8.6,
+    color: INK,
   },
-  sigRole: {
-    fontSize: 8,
-    color: TEXT_MUTED,
-    marginTop: 1,
-  },
-  // ── Footer halaman ──
-  pageNumber: {
+
+  // ── Footer & header halaman lanjutan ──
+  footerLeft: {
     position: "absolute",
-    bottom: 24,
-    left: 40,
-    right: 40,
-    textAlign: "center",
-    fontSize: 8,
-    color: TEXT_MUTED,
-    borderTopWidth: 1,
-    borderTopColor: BORDER,
-    paddingTop: 4,
+    top: 800,
+    left: PAGE_MARGIN_X,
+    fontSize: 7,
+    color: MUTED,
   },
-  closingText: {
-    marginTop: 16,
-    fontSize: 8,
-    color: TEXT_MUTED,
-    fontStyle: "italic",
+  footerRight: {
+    position: "absolute",
+    top: 800,
+    right: PAGE_MARGIN_X,
+    fontSize: 7,
+    color: MUTED,
+    textAlign: "right",
+  },
+  footerRule: {
+    position: "absolute",
+    top: 792,
+    left: PAGE_MARGIN_X,
+    right: PAGE_MARGIN_X,
+    borderTopWidth: 0.8,
+    borderTopColor: BORDER,
+  },
+  runningHeaderLeft: {
+    position: "absolute",
+    top: 22,
+    left: PAGE_MARGIN_X,
+    fontSize: 7,
+    color: MUTED,
+  },
+  runningHeaderRight: {
+    position: "absolute",
+    top: 22,
+    right: PAGE_MARGIN_X,
+    fontSize: 7,
+    color: MUTED,
+    textAlign: "right",
   },
 });
 
@@ -220,7 +400,6 @@ const s = StyleSheet.create({
 
 export type PdfAttendanceSummary = {
   hadir: number;
-  terlambat: number;
   izin: number;
   sakit: number;
   total: number;
@@ -228,13 +407,22 @@ export type PdfAttendanceSummary = {
 
 export type PdfLogRow = {
   no: number;
-  date: string;
   startTime: string;
   endTime: string;
   taskFrom: string;
   description: string;
   output: string;
   fileNames: string; // nama file dipisah koma
+};
+
+export type PdfDayEntry = {
+  date: string;
+  status: string;
+  checkIn: string;
+  checkOut: string;
+  note: string;
+  journalOnly: boolean;
+  logs: PdfLogRow[];
 };
 
 export type PdfReportData = {
@@ -256,87 +444,129 @@ export type PdfReportData = {
   picMentorName: string;
   // Data
   attendance: PdfAttendanceSummary;
-  logs: PdfLogRow[];
+  days: PdfDayEntry[];
+  logCount: number;
   // Tanggal cetak
-  printedAt: string;
+  printedAt: string; // dd/mm/yyyy
+  printedAtLong: string; // 19 Oktober 2026
   // Logo perusahaan base64 (opsional)
   logoBase64?: string;
 };
 
 // ─── Sub-komponen ────────────────────────────────────────
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <View style={s.infoRow}>
       <Text style={s.infoLabel}>{label}</Text>
       <Text style={s.infoColon}>:</Text>
-      <Text style={s.infoValue}>{value || "-"}</Text>
+      <Text style={strong ? s.infoValueStrong : s.infoValue}>
+        {value || "-"}
+      </Text>
     </View>
   );
 }
 
-function TableHeader() {
+function JournalHeader() {
   return (
-    <View style={s.tableHeader}>
-      <View style={s.colNo}>
-        <Text style={s.headerCell}>No.</Text>
+    <View style={s.thRow}>
+      <View style={s.cNo}>
+        <Text style={s.th}>No</Text>
       </View>
-      <View style={s.colDate}>
-        <Text style={s.headerCell}>Tanggal</Text>
+      <View style={s.cTime}>
+        <Text style={s.th}>Jam</Text>
       </View>
-      <View style={s.colTime}>
-        <Text style={s.headerCell}>Jam</Text>
+      <View style={s.cDesc}>
+        <Text style={s.th}>Uraian Kegiatan</Text>
       </View>
-      <View style={s.colTask}>
-        <Text style={s.headerCell}>Task dari</Text>
+      <View style={s.cOutput}>
+        <Text style={s.th}>Hasil</Text>
       </View>
-      <View style={s.colDesc}>
-        <Text style={s.headerCell}>Uraian Kegiatan</Text>
-      </View>
-      <View style={s.colOutput}>
-        <Text style={s.headerCell}>Hasil</Text>
-      </View>
-      <View style={s.colFiles}>
-        <Text style={s.headerCell}>Lampiran</Text>
+      <View style={s.cFiles}>
+        <Text style={s.th}>Lampiran</Text>
       </View>
     </View>
   );
 }
 
-function TableRow({ row, isAlt }: { row: PdfLogRow; isAlt: boolean }) {
+function JournalRow({ row, last }: { row: PdfLogRow; last: boolean }) {
   return (
-    <View style={[s.tableRow, isAlt ? s.tableRowAlt : undefined]}>
-      <View style={s.colNo}>
-        <Text style={s.cell}>{row.no}</Text>
+    <View style={last ? s.trLast : s.tr} wrap={false}>
+      <View style={s.cNo}>
+        <Text style={s.td}>{row.no}</Text>
       </View>
-      <View style={s.colDate}>
-        <Text style={s.cell}>{row.date}</Text>
-      </View>
-      <View style={s.colTime}>
-        <Text style={s.cell}>
+      <View style={s.cTime}>
+        <Text style={s.td}>
           {row.startTime}–{row.endTime}
         </Text>
       </View>
-      <View style={s.colTask}>
-        <Text style={s.cell}>{row.taskFrom}</Text>
+      <View style={s.cDesc}>
+        <Text style={s.td}>{row.description}</Text>
+        {row.taskFrom ? (
+          <Text style={s.tdSub}>Pemberi tugas: {row.taskFrom}</Text>
+        ) : null}
       </View>
-      <View style={s.colDesc}>
-        <Text style={s.cell}>{row.description}</Text>
-      </View>
-      <View style={s.colOutput}>
+      <View style={s.cOutput}>
         {row.output ? (
-          <Text style={s.cell}>{row.output}</Text>
+          <Text style={s.td}>{row.output}</Text>
         ) : (
-          <Text style={s.cellMuted}>-</Text>
+          <Text style={s.tdMuted}>–</Text>
         )}
       </View>
-      <View style={s.colFiles}>
+      <View style={s.cFiles}>
         {row.fileNames ? (
-          <Text style={s.cell}>{row.fileNames}</Text>
+          <Text style={s.td}>{row.fileNames}</Text>
         ) : (
-          <Text style={s.cellMuted}>-</Text>
+          <Text style={s.tdMuted}>–</Text>
         )}
       </View>
+    </View>
+  );
+}
+
+function DayGroup({ day }: { day: PdfDayEntry }) {
+  const timeText =
+    day.checkIn || day.checkOut
+      ? `${day.checkIn || "–"} – ${day.checkOut || "–"}`
+      : "";
+
+  return (
+    <View style={s.dayGroup} wrap={false}>
+      <View style={s.dayHeader}>
+        <Text style={s.dayDate}>{day.date}</Text>
+        <Text style={s.dayMeta}>
+          <Text style={s.dayMetaStrong}>{day.status}</Text>
+          {timeText ? (
+            <Text style={s.dayMetaMuted}>{"  ·  " + timeText}</Text>
+          ) : null}
+          {day.note ? (
+            <Text style={s.dayMetaMuted}>{"  ·  " + day.note}</Text>
+          ) : null}
+        </Text>
+      </View>
+
+      {day.logs.length === 0 ? (
+        <Text style={s.dayEmpty}>Tidak ada jurnal aktivitas.</Text>
+      ) : (
+        <View style={s.table}>
+          <JournalHeader />
+          {day.logs.map((log, i) => (
+            <JournalRow
+              key={log.no}
+              row={log}
+              last={i === day.logs.length - 1}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -353,48 +583,66 @@ export function ReportDocument({
       title={`Laporan PKL – ${data.studentName}`}
       author={PDF_COMPANY_NAME}
       creator={PDF_COMPANY_NAME}
+      subject="Laporan Praktik Kerja Lapangan"
     >
-      <Page size="A4" orientation="landscape" style={s.page}>
-        {/* ── Kop ── */}
-        <View style={s.headerRow}>
-          <View style={s.headerLeft}>
-            {data.logoBase64 ? (
-              <Image src={data.logoBase64} style={s.logo} />
-            ) : null}
-            <View>
-              <Text style={s.companyName}>{PDF_COMPANY_NAME}</Text>
-              <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_1}</Text>
-              {PDF_ADDRESS_LINE_2 ? (
-                <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_2}</Text>
-              ) : null}
-              <Text style={s.companyDetail}>
-                Telp: {PDF_PHONE} | Email: {PDF_EMAIL}
-              </Text>
-            </View>
-          </View>
+      <Page size="A4" orientation="portrait" style={s.page}>
+        {/* Header kecil di halaman lanjutan (halaman 1 kosong) */}
+        <Text
+          fixed
+          style={s.runningHeaderLeft}
+          render={({ pageNumber }) =>
+            pageNumber > 1 ? PDF_COMPANY_NAME : ""
+          }
+        />
+        <Text
+          fixed
+          style={s.runningHeaderRight}
+          render={({ pageNumber }) =>
+            pageNumber > 1
+              ? `${data.studentName}  ·  Laporan Praktik Kerja Lapangan`
+              : ""
+          }
+        />
+
+        {/* ── Kop surat ── */}
+        <View style={s.letterhead}>
+          {data.logoBase64 ? (
+            <Image src={data.logoBase64} style={s.logo} />
+          ) : null}
           <View>
-            <Text style={s.reportTitle}>{PDF_REPORT_TITLE}</Text>
-            <Text
-              style={[s.companyDetail, { textAlign: "right", marginTop: 4 }]}
-            >
-              Dicetak: {data.printedAt}
+            <Text style={s.companyName}>{PDF_COMPANY_NAME}</Text>
+            <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_1}</Text>
+            {PDF_ADDRESS_LINE_2 ? (
+              <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_2}</Text>
+            ) : null}
+            <Text style={s.companyDetail}>
+              Telp. {PDF_PHONE}  ·  {PDF_EMAIL}
             </Text>
           </View>
         </View>
 
-        {/* ── Identitas Siswa & Penempatan ── */}
-        <Text style={s.sectionTitle}>IDENTITAS SISWA</Text>
-        <View style={{ flexDirection: "row", gap: 24 }}>
-          <View style={{ flex: 1 }}>
-            <InfoRow label="Nama Siswa" value={data.studentName} />
+        {/* ── Judul ── */}
+        <View style={s.titleBlock}>
+          <Text style={s.title}>{PDF_REPORT_TITLE.toUpperCase()}</Text>
+          <Text style={s.subtitle}>
+            {data.periodName} · {data.periodRange}
+          </Text>
+          <View style={s.titleRule} />
+        </View>
+
+        {/* ── A. Identitas ── */}
+        <Text style={s.sectionTitle}>A. Data Peserta &amp; Penempatan</Text>
+        <View style={s.infoTable}>
+          <View style={s.infoColumn}>
+            <InfoRow label="Nama Siswa" value={data.studentName} strong />
             <InfoRow label="NIS" value={data.studentNis} />
             <InfoRow label="Sekolah" value={data.schoolName} />
             <InfoRow label="Jurusan" value={data.major} />
             <InfoRow label="Kelas" value={data.className} />
             <InfoRow label="No. HP" value={data.phone} />
           </View>
-          <View style={{ flex: 1 }}>
-            <InfoRow label="Divisi Penempatan" value={data.divisionName} />
+          <View style={s.infoColumnRight}>
+            <InfoRow label="Divisi" value={data.divisionName} strong />
             <InfoRow label="Periode PKL" value={data.periodName} />
             <InfoRow label="Rentang Periode" value={data.periodRange} />
             <InfoRow label="Jam Kerja" value={data.workSchedule} />
@@ -402,71 +650,93 @@ export function ReportDocument({
           </View>
         </View>
 
-        {/* ── Rekap Absensi ── */}
-        <Text style={s.sectionTitle}>REKAP ABSENSI</Text>
-        <View style={s.recapGrid}>
-          <View style={s.recapBox}>
-            <Text style={s.recapNum}>{data.attendance.total}</Text>
-            <Text style={s.recapLabel}>Total Hari</Text>
+        {/* ── B. Rekap absensi ── */}
+        <Text style={s.sectionTitle}>B. Rekapitulasi Kehadiran</Text>
+        <View style={s.recap}>
+          <View style={s.recapHead}>
+            <View style={s.recapCell}>
+              <Text style={s.recapLabel}>Hadir</Text>
+            </View>
+            <View style={s.recapCell}>
+              <Text style={s.recapLabel}>Izin</Text>
+            </View>
+            <View style={s.recapCell}>
+              <Text style={s.recapLabel}>Sakit</Text>
+            </View>
+            <View style={s.recapCellLast}>
+              <Text style={s.recapLabel}>Total Hari</Text>
+            </View>
           </View>
-          <View style={s.recapBox}>
-            <Text style={s.recapNum}>{data.attendance.hadir}</Text>
-            <Text style={s.recapLabel}>Hadir</Text>
-          </View>
-          <View style={s.recapBox}>
-            <Text style={s.recapNum}>{data.attendance.terlambat}</Text>
-            <Text style={s.recapLabel}>Terlambat</Text>
-          </View>
-          <View style={s.recapBox}>
-            <Text style={s.recapNum}>{data.attendance.izin}</Text>
-            <Text style={s.recapLabel}>Izin</Text>
-          </View>
-          <View style={s.recapBox}>
-            <Text style={s.recapNum}>{data.attendance.sakit}</Text>
-            <Text style={s.recapLabel}>Sakit</Text>
+          <View style={s.recapRow}>
+            <View style={s.recapCell}>
+              <Text style={s.recapValue}>{data.attendance.hadir}</Text>
+            </View>
+            <View style={s.recapCell}>
+              <Text style={s.recapValue}>{data.attendance.izin}</Text>
+            </View>
+            <View style={s.recapCell}>
+              <Text style={s.recapValue}>{data.attendance.sakit}</Text>
+            </View>
+            <View style={s.recapCellLast}>
+              <Text style={s.recapValue}>{data.attendance.total}</Text>
+            </View>
           </View>
         </View>
-
-        {/* ── Tabel Aktivitas ── */}
-        <Text style={s.sectionTitle}>
-          LOG AKTIVITAS ({data.logs.length} kegiatan)
+        <Text style={s.recapNote}>
+          Hadir termasuk keterlambatan dan hari dengan jurnal aktivitas tanpa
+          data absensi.
         </Text>
-        {data.logs.length === 0 ? (
-          <Text style={s.cellMuted}>
-            Tidak ada log aktivitas terkirim dalam rentang tanggal ini.
-          </Text>
-        ) : (
-          <View>
-            <TableHeader />
-            {data.logs.map((row, i) => (
-              <TableRow key={row.no} row={row} isAlt={i % 2 === 1} />
-            ))}
+
+        {/* ── C. Rincian kehadiran & jurnal per tanggal ── */}
+        <Text style={s.sectionTitle} minPresenceAhead={90}>
+          C. Rincian Kehadiran &amp; Jurnal Aktivitas ({data.logCount} kegiatan)
+        </Text>
+        {data.days.length === 0 ? (
+          <View style={s.emptyBox}>
+            <Text style={s.emptyText}>
+              Belum ada data kehadiran maupun jurnal aktivitas pada rentang
+              tanggal ini.
+            </Text>
           </View>
+        ) : (
+          data.days.map((day) => <DayGroup key={day.date} day={day} />)
         )}
 
-        {/* ── Penutup & Tanda Tangan ── */}
-        <Text style={s.closingText}>{PDF_CLOSING_TEXT}</Text>
+        {/* ── Penutup & tanda tangan ── */}
+        <View wrap={false}>
+          <Text style={s.closing}>{PDF_CLOSING_TEXT}</Text>
 
-        <View style={s.sigBlock}>
-          <View style={s.sigBox}>
-            <Text style={s.sigLocation}>Jakarta, {data.printedAt}</Text>
-            <Text style={s.sigName}>{data.picMentorName || "_______________"}</Text>
-            <Text style={s.sigRole}>{PDF_SIGNER_1_LABEL}</Text>
-          </View>
-          <View style={s.sigBox}>
-            <Text style={s.sigLocation}>Jakarta, {data.printedAt}</Text>
-            <Text style={s.sigName}>_______________</Text>
-            <Text style={s.sigRole}>{PDF_SIGNER_2_LABEL}</Text>
+          <View style={s.signatureBlock}>
+            <Text style={s.signatureDate}>
+              Jakarta, {data.printedAtLong}
+            </Text>
+            <View style={s.signatureRow}>
+              <View style={s.signatureBox}>
+                <Text style={s.signatureRole}>{PDF_SIGNER_1_LABEL}</Text>
+                <View style={s.signatureLine} />
+                {data.picMentorName ? (
+                  <Text style={s.signatureName}>{data.picMentorName}</Text>
+                ) : null}
+              </View>
+              <View style={s.signatureBox}>
+                <Text style={s.signatureRole}>{PDF_SIGNER_2_LABEL}</Text>
+                <View style={s.signatureLine} />
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* ── Nomor halaman ── */}
+        {/* ── Footer ── */}
+        <View style={s.footerRule} fixed />
+        <Text style={s.footerLeft} fixed>
+          {PDF_COMPANY_NAME} · Laporan Praktik Kerja Lapangan
+        </Text>
         <Text
-          style={s.pageNumber}
-          render={({ pageNumber, totalPages }) =>
-            `Halaman ${pageNumber} dari ${totalPages} | ${PDF_COMPANY_NAME} – Laporan PKL`
-          }
+          style={s.footerRight}
           fixed
+          render={({ pageNumber, totalPages }) =>
+            `Halaman ${pageNumber} dari ${totalPages}`
+          }
         />
       </Page>
     </Document>

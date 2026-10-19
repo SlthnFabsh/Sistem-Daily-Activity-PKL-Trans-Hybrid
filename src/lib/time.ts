@@ -52,6 +52,16 @@ export function formatWibDate(date: Date): string {
   }).format(date);
 }
 
+/** Format tanggal panjang tanpa nama hari, mis. "19 Oktober 2026". */
+export function formatWibLongDate(date: Date): string {
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: WIB_ZONE,
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
 /** Format waktu "HH:mm" WIB dari sebuah DateTime. */
 export function formatWibTime(date: Date): string {
   const { hours, minutes } = getWibTimeParts(date);

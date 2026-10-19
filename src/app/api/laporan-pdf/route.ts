@@ -4,7 +4,12 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/permissions";
-import { formatWibDate, getWibDateParts } from "@/lib/time";
+import {
+  formatWibDate,
+  formatWibLongDate,
+  formatWibTime,
+  getWibDateParts,
+} from "@/lib/time";
 import { ReportDocument } from "@/lib/pdf/report-document";
 import type { PdfReportData } from "@/lib/pdf/report-document";
 
@@ -142,35 +147,93 @@ export async function GET(req: NextRequest) {
                 }
               : {}),
           },
+          orderBy: { attDate: "asc" },
         })
       : Promise.resolve([]),
   ]);
 
-  // ── Rekap absensi ──────────────────────────────────────────────────────
-  const attendance = {
-    hadir: attendances.filter((a) => a.status === "HADIR").length,
-    terlambat: attendances.filter((a) => a.status === "TERLAMBAT").length,
-    izin: attendances.filter((a) => a.status === "IZIN").length,
-    sakit: attendances.filter((a) => a.status === "SAKIT").length,
-    total: attendances.length,
+  // ── Kelompokkan kehadiran & jurnal per tanggal ─────────────────────────
+  const statusLabels: Record<string, string> = {
+    HADIR: "Hadir",
+    TERLAMBAT: "Terlambat",
+    IZIN: "Izin",
+    SAKIT: "Sakit",
   };
 
-  // ── Log rows ───────────────────────────────────────────────────────────
-  const logRows = logs.map((l, i) => ({
-    no: i + 1,
-    date: formatWibDate(l.logDate),
-    startTime: l.startTime,
-    endTime: l.endTime,
-    taskFrom: l.taskFrom,
-    description: l.description,
-    output: l.output ?? "",
-    fileNames: l.attachments.map((a) => a.fileName).join(", "),
-  }));
+  const dateKey = (date: Date) => date.toISOString().slice(0, 10);
+
+  const attendanceByDate = new Map<
+    string,
+    (typeof attendances)[number]
+  >();
+  for (const a of attendances) {
+    attendanceByDate.set(dateKey(a.attDate), a);
+  }
+
+  const logsByDate = new Map<string, (typeof logs)[number][]>();
+  for (const l of logs) {
+    const key = dateKey(l.logDate);
+    const bucket = logsByDate.get(key);
+    if (bucket) bucket.push(l);
+    else logsByDate.set(key, [l]);
+  }
+
+  const dateKeys = [
+    ...new Set([...attendanceByDate.keys(), ...logsByDate.keys()]),
+  ].sort();
+
+  let logNo = 0;
+  const days = dateKeys.map((key) => {
+    const att = attendanceByDate.get(key);
+    const dayLogs = (logsByDate.get(key) ?? []).map((l) => ({
+      no: ++logNo,
+      startTime: l.startTime,
+      endTime: l.endTime,
+      taskFrom: l.taskFrom,
+      description: l.description,
+      output: l.output ?? "",
+      fileNames: l.attachments.map((a) => a.fileName).join(", "),
+    }));
+
+    return {
+      date: formatWibDate(new Date(`${key}T00:00:00.000Z`)),
+      status: att ? (statusLabels[att.status] ?? att.status) : "Hadir",
+      checkIn: att?.checkIn ? formatWibTime(att.checkIn) : "",
+      checkOut: att?.checkOut ? formatWibTime(att.checkOut) : "",
+      note: att
+        ? [att.note, att.earlyLeave ? "Pulang lebih awal" : ""]
+            .filter(Boolean)
+            .join(" · ")
+        : "Berdasarkan jurnal aktivitas",
+      journalOnly: !att,
+      logs: dayLogs,
+    };
+  });
+
+  // ── Rekap kehadiran ────────────────────────────────────────────────────
+  // Hari yang hanya punya jurnal (mis. hasil impor Excel) tetap dihitung hadir.
+  const journalOnlyDays = dateKeys.filter(
+    (key) => !attendanceByDate.has(key)
+  ).length;
+  const hadir =
+    attendances.filter(
+      (a) => a.status === "HADIR" || a.status === "TERLAMBAT"
+    ).length + journalOnlyDays;
+  const izin = attendances.filter((a) => a.status === "IZIN").length;
+  const sakit = attendances.filter((a) => a.status === "SAKIT").length;
+
+  const attendance = {
+    hadir,
+    izin,
+    sakit,
+    total: hadir + izin + sakit,
+  };
 
   // ── Tanggal cetak (WIB) ────────────────────────────────────────────────
   const now = new Date();
   const { year, month, day } = getWibDateParts(now);
   const printedAt = `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
+  const printedAtLong = formatWibLongDate(now);
 
   const periodRange = placement
     ? `${formatWibDate(placement.period.startDate)} s.d. ${formatWibDate(placement.period.endDate)}`
@@ -214,8 +277,10 @@ export async function GET(req: NextRequest) {
     reportDateRange,
     picMentorName: picMentor,
     attendance,
-    logs: logRows,
+    days,
+    logCount: logs.length,
     printedAt,
+    printedAtLong,
     logoBase64,
   };
 
