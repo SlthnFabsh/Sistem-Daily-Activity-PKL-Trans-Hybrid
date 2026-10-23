@@ -95,6 +95,61 @@ export async function saveLogDraft(
   return { ok: true, message: "Draft tersimpan." };
 }
 
+// Simpan otomatis isi form log (dipanggil saat siswa mengetik).
+// Sengaja tanpa validasi ketat: field boleh masih setengah jadi, supaya
+// refresh tidak menghilangkan ketikan. Validasi penuh tetap di jalur Kirim.
+export async function autosaveLogDraft(
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await requireRole("STUDENT");
+
+  const logId = formData.get("logId");
+  if (!logId || typeof logId !== "string") {
+    return { ok: false };
+  }
+
+  const existing = await prisma.activityLog.findUnique({
+    where: { id: logId },
+    include: { placement: { include: { student: true } } },
+  });
+  if (!existing || existing.placement.student.userId !== user.id) {
+    return { ok: false };
+  }
+  if (existing.status !== LogStatus.DRAFT) {
+    return { ok: false };
+  }
+
+  const data: {
+    logDate?: Date;
+    startTime?: string;
+    endTime?: string;
+    taskFrom?: string;
+    description?: string;
+    output?: string | null;
+    obstacle?: string | null;
+  } = {};
+
+  const logDate = formData.get("logDate");
+  if (typeof logDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(logDate)) {
+    const parsedDate = new Date(`${logDate}T00:00:00.000Z`);
+    if (!Number.isNaN(parsedDate.getTime())) data.logDate = parsedDate;
+  }
+
+  for (const field of ["startTime", "endTime", "taskFrom", "description"] as const) {
+    const value = formData.get(field);
+    if (typeof value === "string") data[field] = value;
+  }
+  for (const field of ["output", "obstacle"] as const) {
+    const value = formData.get(field);
+    if (typeof value === "string") data[field] = value === "" ? null : value;
+  }
+
+  if (Object.keys(data).length === 0) return { ok: true };
+
+  await prisma.activityLog.update({ where: { id: logId }, data });
+  return { ok: true };
+}
+
 // Kirim log: status SUBMITTED, isi submittedAt, kunci permanen.
 export async function submitLog(
   _prev: ActionResult,

@@ -172,9 +172,9 @@ export function AbsensiPanel({
             </div>
           </dl>
 
-          {isPresent && today.checkOut && (
+          {isPresent && !today.checkOut && (
             <div className="space-y-2">
-              {!hasLogToday && (
+              {!hasLogToday ? (
                 <div className="rounded-xl border border-warning/30 bg-warning-soft px-3 py-2.5">
                   <p className="text-xs font-medium text-warning">
                     ⚠️ Anda belum mengirim log aktivitas hari ini
@@ -187,21 +187,27 @@ export function AbsensiPanel({
                     terlebih dahulu sebelum absen pulang.
                   </p>
                 </div>
-              )}
-              <CheckOutWithMedia
-                formAction={outAction}
-                outPending={outPending}
-                hasLogToday={hasLogToday}
-              />
-              {outState.message && (
-                <Notice tone={outState.ok ? "info" : "error"}>{outState.message}</Notice>
+              ) : (
+                <>
+                  <CheckOutWithMedia
+                    formAction={outAction}
+                    outPending={outPending}
+                    hasLogToday={hasLogToday}
+                  />
+                  {outState.message && (
+                    <Notice tone={outState.ok ? "info" : "error"}>
+                      {outState.message}
+                    </Notice>
+                  )}
+                </>
               )}
             </div>
           )}
 
-          {isPresent && !today.checkOut && (
+          {isPresent && today.checkOut && (
             <p className="text-xs text-text-muted">
-              Absensi hari ini sudah lengkap dan tidak bisa diubah. Koreksi hanya oleh HRD.
+              Absensi hari ini sudah lengkap dan tidak bisa diubah. Koreksi hanya
+              oleh HRD.
             </p>
           )}
         </div>

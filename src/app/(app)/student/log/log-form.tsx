@@ -8,6 +8,7 @@ import { Lock, Paperclip, Pencil, Send, Trash2, Loader2 } from "lucide-react";
 import type { ActionResult } from "@/lib/action-result";
 import { endPending, startPending } from "@/lib/pending-store";
 import {
+  autosaveLogDraft,
   saveLogDraft,
   submitLog,
   updateSubmittedLog,
@@ -56,7 +57,7 @@ export function LogForm({
   // Apakah seluruh form dikunci (sudah checkout)
   const isLocked = logStatus === "SUBMITTED" && lockedByCheckout;
 
-  const [draftState, draftAction, draftPending] = useActionForm(
+  const [draftState, draftAction] = useActionForm(
     saveLogDraft,
     initialState
   );
@@ -83,6 +84,171 @@ export function LogForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const formId = `log-form-${logId ?? "new"}`;
+
+  // Auto-save: isi form disimpan otomatis supaya refresh tidak menghapus
+  // ketikan. Snapshot juga ditulis ke localStorage sebagai jaring pengaman
+  // bila request ke server belum sempat selesai saat halaman ditutup.
+  const formRef = useRef<HTMLFormElement>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const saveInFlightRef = useRef(false);
+  const saveQueuedRef = useRef(false);
+  const [autosaveState, setAutosaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const canAutosave = logStatus === "DRAFT" && !!logId;
+  const storageKey = logId ? `log-draft:${logId}` : null;
+
+  function readFormValues() {
+    const form = formRef.current;
+    if (!form) return null;
+    const fd = new FormData(form);
+    return {
+      logDate: String(fd.get("logDate") ?? ""),
+      startTime: String(fd.get("startTime") ?? ""),
+      endTime: String(fd.get("endTime") ?? ""),
+      taskFrom: String(fd.get("taskFrom") ?? ""),
+      description: String(fd.get("description") ?? ""),
+      output: String(fd.get("output") ?? ""),
+      obstacle: String(fd.get("obstacle") ?? ""),
+    };
+  }
+
+  function persistSnapshot() {
+    if (!storageKey || !canAutosave) return;
+    const values = readFormValues();
+    if (!values) return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(values));
+    } catch {
+      // localStorage penuh/diblokir: abaikan, server tetap jadi penyimpanan utama.
+    }
+  }
+
+  async function flushAutosave() {
+    if (!canAutosave || !logId) return;
+    const form = formRef.current;
+    if (!form) return;
+    if (saveInFlightRef.current) {
+      // Simpan permintaan terakhir agar ketikan terbaru tidak tertimpa.
+      saveQueuedRef.current = true;
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    setAutosaveState("saving");
+    try {
+      const res = await autosaveLogDraft(new FormData(form));
+      if (res.ok) {
+        // Jangan hapus snapshot kalau masih ada ketikan baru yang menunggu
+        // dikirim; snapshot itu satu-satunya jaring pengaman saat refresh.
+        if (!saveQueuedRef.current) {
+          setAutosaveState("saved");
+          try {
+            window.localStorage.removeItem(storageKey ?? "");
+          } catch {
+            // abaikan
+          }
+        }
+      } else {
+        setAutosaveState("error");
+      }
+    } catch {
+      setAutosaveState("error");
+    } finally {
+      saveInFlightRef.current = false;
+      if (saveQueuedRef.current) {
+        saveQueuedRef.current = false;
+        void flushAutosave();
+      }
+    }
+  }
+
+  function scheduleAutosave() {
+    if (!canAutosave) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      void flushAutosave();
+    }, 600);
+  }
+
+  function handleFormChange() {
+    persistSnapshot();
+    if (!canAutosave) return;
+    setAutosaveState("idle");
+    scheduleAutosave();
+  }
+
+  function handleFormBlur() {
+    if (!canAutosave) return;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    persistSnapshot();
+    void flushAutosave();
+  }
+
+  // Pulihkan ketikan yang belum sempat tersimpan ke server setelah refresh.
+  useEffect(() => {
+    if (!storageKey || !canAutosave) return;
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return;
+    try {
+      const values = JSON.parse(raw) as Record<string, string>;
+      const form = formRef.current;
+      if (!form) return;
+      const fields = [
+        "logDate",
+        "startTime",
+        "endTime",
+        "taskFrom",
+        "description",
+        "output",
+        "obstacle",
+      ];
+      for (const name of fields) {
+        const el = form.elements.namedItem(name) as
+          | HTMLInputElement
+          | HTMLTextAreaElement
+          | null;
+        if (!el || el.disabled) continue;
+        el.value = values[name] ?? "";
+      }
+      setAutosaveState("idle");
+      // Simpan ulang ke server karena snapshot ini bisa jadi lebih baru
+      // daripada data yang sempat tersimpan sebelum refresh.
+      if (canAutosave) void flushAutosave();
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
+  }, [storageKey, canAutosave]);
+
+  // Kirim sisa ketikan saat halaman ditutup/dipindah ke background.
+  useEffect(() => {
+    if (!canAutosave) return;
+    function flushNow() {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      persistSnapshot();
+      void flushAutosave();
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flushNow();
+    }
+    window.addEventListener("pagehide", flushNow);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flushNow);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAutosave, logId]);
+
+  // Setelah log benar-benar terkirim/diperbarui, snapshot lokal tidak perlu lagi.
+  useEffect(() => {
+    if (!(submitState.ok || updateState.ok)) return;
+    try {
+      window.localStorage.removeItem(storageKey ?? "");
+    } catch {
+      // abaikan
+    }
+  }, [submitState.ok, updateState.ok, storageKey]);
 
   // Unggah lampiran juga tampilkan overlay "Memproses..." global.
   useEffect(() => {
@@ -255,8 +421,11 @@ export function LogForm({
 
         <form
           id={formId}
+          ref={formRef}
           action={isEditableSubmitted ? updateAction : draftAction}
           className="space-y-4"
+          onChange={handleFormChange}
+          onBlur={handleFormBlur}
         >
           {logId && <input type="hidden" name="logId" value={logId} />}
 
@@ -366,6 +535,22 @@ export function LogForm({
               </p>
             ))}
 
+          {/* Status simpan otomatis */}
+          {canAutosave && (
+            <p
+              className="text-right text-[11px] text-text-muted"
+              aria-live="polite"
+            >
+              {autosaveState === "saving"
+                ? "Menyimpan..."
+                : autosaveState === "saved"
+                  ? "Tersimpan otomatis"
+                  : autosaveState === "error"
+                    ? "Gagal menyimpan otomatis, coba ubah isian lagi"
+                    : ""}
+            </p>
+          )}
+
           {/* Tombol aksi */}
           {isEditableSubmitted ? (
             // Mode edit SUBMITTED: hanya satu tombol "Perbarui Log"
@@ -378,32 +563,22 @@ export function LogForm({
               {updatePending ? "Menyimpan..." : "Perbarui Log"}
             </Button>
           ) : (
-            // Mode DRAFT: Simpan Draft + Kirim
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                variant="secondary"
-                disabled={draftPending || submitPending}
-                className="flex-1"
-              >
-                {draftPending ? "Menyimpan..." : "Simpan Draft"}
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  const form = document.getElementById(
-                    formId
-                  ) as HTMLFormElement | null;
-                  if (form && !form.reportValidity()) return;
-                  setShowConfirm(true);
-                }}
-                disabled={submitPending || draftPending}
-                className="flex-1"
-              >
-                <Send className="h-4 w-4" aria-hidden />
-                {submitPending ? "Mengirim..." : "Kirim"}
-              </Button>
-            </div>
+            // Mode DRAFT: isian tersimpan otomatis, satu tombol untuk kirim
+            <Button
+              type="button"
+              onClick={() => {
+                const form = document.getElementById(
+                  formId
+                ) as HTMLFormElement | null;
+                if (form && !form.reportValidity()) return;
+                setShowConfirm(true);
+              }}
+              disabled={submitPending}
+              className="w-full"
+            >
+              <Send className="h-4 w-4" aria-hidden />
+              {submitPending ? "Mengirim..." : "Kirim"}
+            </Button>
           )}
 
           {/* Hidden submit button for "Kirim" action - triggered from confirm dialog */}
