@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useActionForm } from "@/lib/use-action-form";
 import imageCompression from "browser-image-compression";
 import { Lock, Paperclip, Pencil, Send, Trash2, Loader2 } from "lucide-react";
@@ -420,39 +421,41 @@ export function LogForm({
         </form>
       </Card>
 
-      {/* Dialog konfirmasi Kirim */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="w-full max-w-sm p-4">
-            <h3 className="text-sm font-semibold text-text">Kirim Log?</h3>
-            <p className="mt-2 text-sm text-text-muted">
-              Log yang sudah dikirim masih bisa diedit selama Anda{" "}
-              <strong>belum absen pulang</strong>. Setelah absen pulang, log
-              akan dikunci permanen.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setShowConfirm(false)}
-                className="flex-1"
-              >
-                Batal
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                onClick={() => {
-                  submitButtonRef.current?.click();
-                  setShowConfirm(false);
-                }}
-                disabled={submitPending}
-              >
-                Ya, Kirim
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Dialog konfirmasi Kirim — portal ke body agar selalu menempel viewport */}
+      {showConfirm &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <Card className="w-full max-w-sm p-4">
+              <h3 className="text-sm font-semibold text-text">Kirim Log?</h3>
+              <p className="mt-2 text-sm text-text-muted">
+                Log yang sudah dikirim masih bisa diedit selama Anda{" "}
+                <strong>belum absen pulang</strong>. Setelah absen pulang, log
+                akan dikunci permanen.
+              </p>
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={() => {
+                    submitButtonRef.current?.click();
+                    setShowConfirm(false);
+                  }}
+                  disabled={submitPending}
+                >
+                  Ya, Kirim
+                </Button>
+              </div>
+            </Card>
+          </div>,
+          document.body
+        )}
 
       {/* Kartu lampiran */}
       {logId && (

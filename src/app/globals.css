@@ -38,7 +38,10 @@
   --radius-xl: 0.8rem;
   --radius-2xl: 1rem;
 
-  --animate-fade-up: fade-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Tanpa fill-mode "both": transform jangan menempel setelah animasi,
+     karena ancestor ber-transform membuat position: fixed relatif ke
+     elemen itu (modal ikut terdorong ke bawah halaman yang panjang). */
+  --animate-fade-up: fade-up 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Hanya menggeser (tanpa opacity) supaya konten tidak pernah "hilang"
