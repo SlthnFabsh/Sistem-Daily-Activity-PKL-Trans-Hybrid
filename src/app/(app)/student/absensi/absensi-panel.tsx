@@ -26,6 +26,28 @@ function putFileIntoInput(input: HTMLInputElement | null, file: File) {
 
 type FormAction = (formData: FormData) => void;
 
+/**
+ * Minta kamera depan untuk selfie absen. Coba `exact` dulu supaya browser
+ * benar-benar memilih kamera depan; kalau perangkat/browser tidak mendukung,
+ * turun ke `ideal` agar kamera apa pun tetap bisa dipakai.
+ */
+async function requestSelfieStream(): Promise<MediaStream> {
+  const video = { width: { ideal: 1280 }, height: { ideal: 720 } };
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { ...video, facingMode: { exact: "user" } },
+    });
+  } catch (err) {
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        video: { ...video, facingMode: { ideal: "user" } },
+      });
+    } catch {
+      throw err;
+    }
+  }
+}
+
 export type AttendanceView = {
   status: "HADIR" | "TERLAMBAT" | "IZIN" | "SAKIT";
   checkIn: string | null;
@@ -203,6 +225,7 @@ function CheckInWithMedia({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [camActive, setCamActive] = useState(false);
   const [camTrackActive, setCamTrackActive] = useState(false);
+  const [mirrored, setMirrored] = useState(true);
   const localStream = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -218,13 +241,11 @@ function CheckInWithMedia({
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      });
+      const stream = await requestSelfieStream();
+      // Hanya cerminkan bila kamera yang benar-benar dipakai adalah kamera depan.
+      setMirrored(
+        stream.getVideoTracks()[0]?.getSettings().facingMode !== "environment"
+      );
       localStream.current = stream;
       setCamActive(true);
     } catch (err: unknown) {
@@ -332,7 +353,16 @@ function CheckInWithMedia({
       setCameraError("Gagal membuat preview foto.");
       return;
     }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (mirrored) {
+      // Cerminkan seperti preview selfie (kamera depan tampil seperti di cermin).
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    } else {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
     const defaultMime = "image/jpeg";
     canvas.toBlob(
       (blob) => {
@@ -409,7 +439,9 @@ function CheckInWithMedia({
               autoPlay
               playsInline
               muted
-              className="w-full max-h-52 object-cover"
+              className={`w-full max-h-52 object-cover ${
+                mirrored ? "-scale-x-100" : ""
+              }`}
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="rounded-full border-2 border-white/70 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
@@ -478,7 +510,7 @@ function CheckInWithMedia({
         type="file"
         name="photo"
         accept="image/*"
-        capture="environment"
+        capture="user"
         className="sr-only"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -520,6 +552,7 @@ function CheckOutWithMedia({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [camActive, setCamActive] = useState(false);
   const [camTrackActive, setCamTrackActive] = useState(false);
+  const [mirrored, setMirrored] = useState(true);
   const localStream = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -535,13 +568,11 @@ function CheckOutWithMedia({
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      });
+      const stream = await requestSelfieStream();
+      // Hanya cerminkan bila kamera yang benar-benar dipakai adalah kamera depan.
+      setMirrored(
+        stream.getVideoTracks()[0]?.getSettings().facingMode !== "environment"
+      );
       localStream.current = stream;
       setCamActive(true);
     } catch (err: unknown) {
@@ -649,7 +680,16 @@ function CheckOutWithMedia({
       setCameraError("Gagal membuat preview foto.");
       return;
     }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (mirrored) {
+      // Cerminkan seperti preview selfie (kamera depan tampil seperti di cermin).
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    } else {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
     const defaultMime = "image/jpeg";
     canvas.toBlob(
       (blob) => {
@@ -726,7 +766,9 @@ function CheckOutWithMedia({
               autoPlay
               playsInline
               muted
-              className="w-full max-h-52 object-cover"
+              className={`w-full max-h-52 object-cover ${
+                mirrored ? "-scale-x-100" : ""
+              }`}
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="rounded-full border-2 border-white/70 bg-black/40 px-3 py-1 text-xs font-semibold text-white">
@@ -797,7 +839,7 @@ function CheckOutWithMedia({
         type="file"
         name="photo"
         accept="image/*"
-        capture="environment"
+        capture="user"
         className="sr-only"
         onChange={(e) => {
           const f = e.target.files?.[0];
