@@ -105,7 +105,7 @@ export function MobileNav({
               >
                 <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
                   <div className="min-w-0">
-                    <BrandLogo width={130} priority />
+                    <BrandLogo width={118} priority />
                     <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
                       Daily Activity PKL
                     </p>

@@ -24,7 +24,7 @@ export function AppShell({
 
       {/* Header khusus mobile / tablet */}
       <header className="glass-panel sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 lg:hidden">
-        <BrandLogo width={104} priority />
+        <BrandLogo width={92} priority />
         <div className="flex items-center gap-2.5">
           <div className="hidden text-right sm:block">
             <p className="max-w-[11rem] truncate text-xs font-semibold text-text">

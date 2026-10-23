@@ -28,7 +28,7 @@ export function Sidebar({
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-white/85 backdrop-blur-xl lg:flex">
       <div className="flex flex-col items-center px-5 pt-6">
-        <BrandLogo width={168} priority />
+        <BrandLogo width={136} priority />
         <p className="mt-3 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
           Daily Activity PKL
         </p>

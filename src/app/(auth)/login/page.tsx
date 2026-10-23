@@ -85,7 +85,7 @@ function LoginForm() {
         </div>
 
         <div className="relative flex justify-center lg:justify-start">
-          <BrandLogo width={200} tile priority />
+          <BrandLogo width={184} tile priority />
         </div>
 
         <div className="relative mt-10 lg:mt-0">
@@ -125,7 +125,7 @@ function LoginForm() {
         <div className="animate-fade-up w-full max-w-sm">
           {/* Header brand ringkas untuk HP: form langsung terlihat tanpa scroll */}
           <div className="mb-6 flex flex-col items-center text-center lg:hidden">
-            <BrandLogo width={132} priority />
+            <BrandLogo width={120} priority />
             <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
               Your Trusted Partner
             </p>
