@@ -5,21 +5,28 @@
 // ============================================================
 
 /** Nama perusahaan yang muncul di kop laporan. */
-export const PDF_COMPANY_NAME = "PT TRANS HYBRID COMMUNICATION";
+export const PDF_COMPANY_NAME = "PT Trans Hybrid";
 
-/** Baris pertama alamat perusahaan. */
-export const PDF_ADDRESS_LINE_1 =
-  "Margonda Raya Jl. Salak No. 520 Ruko B-C";
+/** Baris alamat perusahaan (gedung). */
+export const PDF_ADDRESS_LINE_1 = "Gedung Cyber Lt. 6";
 
-/** Baris kedua alamat (opsional, kosongkan jika tidak diperlukan). */
-export const PDF_ADDRESS_LINE_2 =
-  "Kel. Pondok Cina, Kec. Beji, Kota Depok, Jawa Barat 16424";
+/** Baris alamat perusahaan (jalan). */
+export const PDF_ADDRESS_LINE_2 = "Jl. Kuningan Barat No. 8";
+
+/** Baris alamat perusahaan (kota & kode pos). */
+export const PDF_ADDRESS_LINE_3 = "Jakarta Selatan 12710";
 
 /** Nomor telepon perusahaan. */
-export const PDF_PHONE = "0811-1222-808";
+export const PDF_PHONE = "+6221 2809-34";
+
+/** Nomor faks perusahaan. */
+export const PDF_FAX = "+6221 7660 774";
 
 /** Email perusahaan. */
-export const PDF_EMAIL = "info@transhybrid.net.id";
+export const PDF_EMAIL = "finance@transhybrid.net.id";
+
+/** Situs web perusahaan. */
+export const PDF_WEBSITE = "www.transhybrid.net.id";
 
 /** Judul dokumen laporan. */
 export const PDF_REPORT_TITLE = "Laporan Praktik Kerja Lapangan (PKL)";

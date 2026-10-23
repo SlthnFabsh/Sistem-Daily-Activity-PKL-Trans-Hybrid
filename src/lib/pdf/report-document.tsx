@@ -22,13 +22,16 @@ import {
 import {
   PDF_ADDRESS_LINE_1,
   PDF_ADDRESS_LINE_2,
+  PDF_ADDRESS_LINE_3,
   PDF_CLOSING_TEXT,
   PDF_COMPANY_NAME,
   PDF_EMAIL,
+  PDF_FAX,
   PDF_PHONE,
   PDF_REPORT_TITLE,
   PDF_SIGNER_1_LABEL,
   PDF_SIGNER_2_LABEL,
+  PDF_WEBSITE,
 } from "@/lib/pdf-constants";
 
 // Jangan memenggal kata dengan tanda hubung; teks Indonesia lebih nyaman
@@ -41,6 +44,7 @@ const MUTED = "#6B7280"; // teks sekunder
 const BORDER = "#D1D5DB"; // garis tabel
 const SOFT = "#F3F4F6"; // latar header tabel
 const ACCENT = "#1E3A8A"; // navy, dipakai sangat sedikit
+const LINK = "#1F5FBF"; // biru kop: garis bawah & email
 
 const PAGE_MARGIN_X = 48;
 
@@ -58,27 +62,84 @@ const s = StyleSheet.create({
   // ── Kop surat ──
   letterhead: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: INK,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingBottom: 2,
+  },
+  letterheadLeft: {
+    width: "28%",
   },
   logo: {
-    width: 44,
-    height: 44,
-    objectFit: "contain",
-    marginRight: 12,
+    width: 74,
+    height: 40,
+    objectFit: "cover",
+    objectPosition: "center",
+    marginBottom: 4,
   },
   companyName: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 14,
-    letterSpacing: 0.2,
+    fontFamily: "Times-Bold",
+    fontSize: 9,
     color: INK,
   },
   companyDetail: {
-    fontSize: 7.2,
-    color: MUTED,
-    marginTop: 1.2,
+    fontFamily: "Times-Roman",
+    fontSize: 8,
+    color: INK,
+    lineHeight: 1.28,
+  },
+  letterheadCenter: {
+    width: "30%",
+  },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 13,
+  },
+  contactLabel: {
+    width: 34,
+    fontFamily: "Times-Roman",
+    fontSize: 8,
+    color: INK,
+  },
+  contactColon: {
+    width: 7,
+    fontFamily: "Times-Roman",
+    fontSize: 8,
+    color: INK,
+  },
+  contactValue: {
+    flex: 1,
+    fontFamily: "Times-Roman",
+    fontSize: 8,
+    color: INK,
+  },
+  contactLink: {
+    color: LINK,
+    textDecoration: "underline",
+  },
+  letterheadRight: {
+    width: "22%",
+    marginLeft: "auto",
+    alignItems: "flex-end",
+  },
+  isoLogo: {
+    width: 72,
+    height: 71,
+    objectFit: "contain",
+  },
+  website: {
+    fontFamily: "Times-Roman",
+    fontSize: 8,
+    color: INK,
+    marginTop: 3,
+    textAlign: "right",
+  },
+  letterheadRule: {
+    alignSelf: "flex-end",
+    width: "45%",
+    borderTopWidth: 1.2,
+    borderTopColor: LINK,
+    marginTop: 2,
   },
 
   // ── Judul ──
@@ -451,6 +512,8 @@ export type PdfReportData = {
   printedAtLong: string; // 19 Oktober 2026
   // Logo perusahaan base64 (opsional)
   logoBase64?: string;
+  // Logo ISO 9001:2015 base64 (opsional)
+  isoLogoBase64?: string;
 };
 
 // ─── Sub-komponen ────────────────────────────────────────
@@ -606,20 +669,44 @@ export function ReportDocument({
 
         {/* ── Kop surat ── */}
         <View style={s.letterhead}>
-          {data.logoBase64 ? (
-            <Image src={data.logoBase64} style={s.logo} />
-          ) : null}
-          <View>
+          <View style={s.letterheadLeft}>
+            {data.logoBase64 ? (
+              <Image src={data.logoBase64} style={s.logo} />
+            ) : null}
             <Text style={s.companyName}>{PDF_COMPANY_NAME}</Text>
             <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_1}</Text>
-            {PDF_ADDRESS_LINE_2 ? (
-              <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_2}</Text>
+            <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_2}</Text>
+            <Text style={s.companyDetail}>{PDF_ADDRESS_LINE_3}</Text>
+          </View>
+
+          <View style={s.letterheadCenter}>
+            <View style={s.contactRow}>
+              <Text style={s.contactLabel}>Phone</Text>
+              <Text style={s.contactColon}>:</Text>
+              <Text style={s.contactValue}>{PDF_PHONE}</Text>
+            </View>
+            <View style={s.contactRow}>
+              <Text style={s.contactLabel}>Fax</Text>
+              <Text style={s.contactColon}>:</Text>
+              <Text style={s.contactValue}>{PDF_FAX}</Text>
+            </View>
+            <View style={s.contactRow}>
+              <Text style={s.contactLabel}>Email</Text>
+              <Text style={s.contactColon}>:</Text>
+              <Text style={[s.contactValue, s.contactLink]}>
+                {PDF_EMAIL}
+              </Text>
+            </View>
+          </View>
+
+          <View style={s.letterheadRight}>
+            {data.isoLogoBase64 ? (
+              <Image src={data.isoLogoBase64} style={s.isoLogo} />
             ) : null}
-            <Text style={s.companyDetail}>
-              Telp. {PDF_PHONE}  ·  {PDF_EMAIL}
-            </Text>
+            <Text style={s.website}>{PDF_WEBSITE}</Text>
           </View>
         </View>
+        <View style={s.letterheadRule} />
 
         {/* ── Judul ── */}
         <View style={s.titleBlock}>

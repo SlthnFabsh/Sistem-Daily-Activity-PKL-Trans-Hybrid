@@ -251,15 +251,19 @@ export async function GET(req: NextRequest) {
   const picMentor =
     placement?.division?.mentors?.[0]?.user?.name ?? "";
 
-  let logoBase64: string | undefined;
-  try {
-    const logoPath = path.join(process.cwd(), "public", "logo.png");
-    if (fs.existsSync(logoPath)) {
-      logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`;
+  const readPublicImage = (filename: string) => {
+    try {
+      const imagePath = path.join(process.cwd(), "public", filename);
+      if (!fs.existsSync(imagePath)) return undefined;
+      return `data:image/png;base64,${fs.readFileSync(imagePath).toString("base64")}`;
+    } catch {
+      // Abaikan jika gagal membaca gambar
+      return undefined;
     }
-  } catch {
-    // Abaikan jika gagal membaca logo
-  }
+  };
+
+  const logoBase64 = readPublicImage("logo.png");
+  const isoLogoBase64 = readPublicImage("ISO.png");
 
   const data: PdfReportData = {
     studentName: student.user.name,
@@ -282,6 +286,7 @@ export async function GET(req: NextRequest) {
     printedAt,
     printedAtLong,
     logoBase64,
+    isoLogoBase64,
   };
 
   // ── Render PDF ─────────────────────────────────────────────────────────
