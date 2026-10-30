@@ -32,7 +32,7 @@ export default async function MentorAbsensiPage(props: {
   }
 
   const searchParams = await props.searchParams;
-  const { items, students, activeFilters, pagination } =
+  const { items, students, activeFilters, hasCustomFilters, pagination } =
     await loadAttendanceReview({
       searchParams,
       divisionId: mentor.divisionId,
@@ -48,6 +48,7 @@ export default async function MentorAbsensiPage(props: {
         items={items}
         students={students}
         activeFilters={activeFilters}
+        hasCustomFilters={hasCustomFilters}
         pagination={pagination}
         divisionName={mentor.division.name}
       />

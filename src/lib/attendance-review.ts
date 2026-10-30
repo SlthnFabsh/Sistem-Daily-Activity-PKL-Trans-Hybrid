@@ -36,6 +36,7 @@ export type AttendanceReviewData = {
     fromDate?: string;
     toDate?: string;
   };
+  hasCustomFilters: boolean;
   pagination: AttendancePagination;
 };
 
@@ -107,6 +108,15 @@ export async function loadAttendanceReview(options: {
     rawStatus && rawStatus !== "all" && (STATUS_VALUES as string[]).includes(rawStatus)
       ? (rawStatus as AttendanceStatus)
       : undefined;
+
+  // Tanggal default (bulan berjalan) bukan filter aktif. Ini mencegah label
+  // "Filter aktif" dan chip filter muncul saat pengguna belum memfilter apa pun.
+  const hasCustomFilters = Boolean(
+    (rawStudentId && rawStudentId !== "all") ||
+      (rawStatus && rawStatus !== "all") ||
+      rawFromDate ||
+      rawToDate
+  );
 
   const placementScope: { divisionId?: string; studentId?: string } = {};
   if (divisionId) placementScope.divisionId = divisionId;
@@ -184,6 +194,7 @@ export async function loadAttendanceReview(options: {
       fromDate,
       toDate,
     },
+    hasCustomFilters,
     pagination: {
       page,
       perPage: PER_PAGE,
