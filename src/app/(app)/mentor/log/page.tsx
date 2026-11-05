@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/permissions";
 import { formatWibDate, formatWibTime } from "@/lib/time";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
 import { LogReviewManager } from "@/components/log-review/log-review-manager";
 import type {
   LogReviewItem,
@@ -16,8 +17,6 @@ function formatFileSize(bytes: number): string {
 }
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-// Batas baris log terkirim yang dirender sekaligus (halaman tetap ringan).
 const SUBMITTED_LIMIT = 300;
 
 export default async function MentorLogPage(props: {
@@ -50,7 +49,7 @@ export default async function MentorLogPage(props: {
       <>
         <PageHeader
           title="Log Aktivitas Siswa"
-          description="Tinjau log aktivitas siswa di divisi Anda."
+          description="Tinjau dan setujui log aktivitas siswa di divisi Anda."
         />
         <Card className="py-10 text-center">
           <p className="text-sm text-text-muted">
@@ -61,9 +60,7 @@ export default async function MentorLogPage(props: {
     );
   }
 
-  // Ambil semua siswa di divisi pembimbing dari hasil include
   const placementsInDivision = mentor.division.placements;
-
   const studentMap = new Map<string, StudentOption>();
   for (const p of placementsInDivision) {
     if (!studentMap.has(p.studentId)) {
@@ -76,7 +73,6 @@ export default async function MentorLogPage(props: {
   }
   const studentOptions: StudentOption[] = Array.from(studentMap.values());
 
-  // Ambil parameter filter dari query URL
   const search = await props.searchParams;
   const rawStudentId =
     typeof search.studentId === "string" ? search.studentId : undefined;
@@ -90,109 +86,168 @@ export default async function MentorLogPage(props: {
   const validToDate =
     rawToDate && DATE_REGEX.test(rawToDate) ? rawToDate : undefined;
 
-  // PENGECEKAN SERVER:
-  // 1. Status log wajib SUBMITTED
-  // 2. DivisionId HANYA divisi milik pembimbing ini
-  // 3. Jika pengguna memfilter studentId, validasi bahwa siswa tersebut ada di divisi ini.
-  //    Jika siswa dari divisi lain dimasukkan lewat URL, hasil dipaksa kosong.
-  const whereClause: {
+  // Tanggal batas 7 hari lalu untuk deteksi keterlambatan approval
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  // Ambil log yang menunggu persetujuan (SUBMITTED) di divisi ini
+  const wherePending: {
     status: "SUBMITTED";
-    placement: {
-      divisionId: string;
-      studentId?: string;
-    };
-    logDate?: {
-      gte?: Date;
-      lte?: Date;
-    };
+    placement: { divisionId: string; studentId?: string };
+    logDate?: { gte?: Date; lte?: Date };
   } = {
     status: "SUBMITTED",
-    placement: {
-      divisionId: mentor.divisionId,
-    },
+    placement: { divisionId: mentor.divisionId },
   };
 
   if (rawStudentId && rawStudentId !== "all") {
     if (studentMap.has(rawStudentId)) {
-      whereClause.placement.studentId = rawStudentId;
+      wherePending.placement.studentId = rawStudentId;
     } else {
-      // Siswa tidak berada di divisi pembimbing: tolak dan jangan kembalikan log apa pun
-      whereClause.placement.studentId = "FORBIDDEN_STUDENT_ID";
+      wherePending.placement.studentId = "FORBIDDEN_STUDENT_ID";
     }
   }
 
   if (validFromDate || validToDate) {
-    whereClause.logDate = {
-      ...(validFromDate
-        ? { gte: new Date(`${validFromDate}T00:00:00.000Z`) }
-        : {}),
-      ...(validToDate
-        ? { lte: new Date(`${validToDate}T00:00:00.000Z`) }
-        : {}),
+    wherePending.logDate = {
+      ...(validFromDate ? { gte: new Date(`${validFromDate}T00:00:00.000Z`) } : {}),
+      ...(validToDate ? { lte: new Date(`${validToDate}T00:00:00.000Z`) } : {}),
     };
   }
 
-  const logs = await prisma.activityLog.findMany({
-    where: whereClause,
-    include: {
-      attachments: true,
-      placement: {
-        include: {
-          student: {
-            include: { user: { select: { name: true } } },
-          },
-          division: { select: { name: true } },
-        },
-      },
+  // Hitung jumlah log overdue (> 7 hari belum diapprove) di divisi ini
+  const overdueCount = await prisma.activityLog.count({
+    where: {
+      status: "SUBMITTED",
+      placement: { divisionId: mentor.divisionId },
+      logDate: { lt: oneWeekAgo },
     },
-    orderBy: [{ logDate: "desc" }, { submittedAt: "desc" }],
-    // Batasi jumlah baris supaya halaman tetap ringan di dataset besar.
-    take: SUBMITTED_LIMIT + 1,
   });
 
-  const truncatedSubmitted = logs.length > SUBMITTED_LIMIT;
+  const [pendingLogsRaw, approvedLogsRaw] = await Promise.all([
+    prisma.activityLog.findMany({
+      where: wherePending,
+      include: {
+        attachments: true,
+        placement: {
+          include: {
+            student: { include: { user: { select: { name: true } } } },
+            division: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ logDate: "asc" }, { submittedAt: "asc" }],
+      take: SUBMITTED_LIMIT + 1,
+    }),
+    prisma.activityLog.findMany({
+      where: {
+        status: "APPROVED",
+        placement: {
+          divisionId: mentor.divisionId,
+          ...(rawStudentId && rawStudentId !== "all" && studentMap.has(rawStudentId)
+            ? { studentId: rawStudentId }
+            : {}),
+        },
+        ...(validFromDate || validToDate
+          ? {
+              logDate: {
+                ...(validFromDate ? { gte: new Date(`${validFromDate}T00:00:00.000Z`) } : {}),
+                ...(validToDate ? { lte: new Date(`${validToDate}T00:00:00.000Z`) } : {}),
+              },
+            }
+          : {}),
+      },
+      include: {
+        attachments: true,
+        placement: {
+          include: {
+            student: { include: { user: { select: { name: true } } } },
+            division: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ logDate: "desc" }, { approvedAt: "desc" }],
+      take: 50,
+    }),
+  ]);
 
-  const viewItems: LogReviewItem[] = logs.slice(0, SUBMITTED_LIMIT).map((l) => ({
-    id: l.id,
-    logDate: l.logDate.toISOString(),
-    formattedDate: formatWibDate(l.logDate),
-    startTime: l.startTime,
-    endTime: l.endTime,
-    taskFrom: l.taskFrom,
-    description: l.description,
-    output: l.output,
-    obstacle: l.obstacle,
-    status: "SUBMITTED",
-    submittedAt: l.submittedAt ? l.submittedAt.toISOString() : null,
-    formattedSubmittedAt: l.submittedAt
-      ? `${formatWibDate(l.submittedAt)} pukul ${formatWibTime(l.submittedAt)}`
-      : null,
-    student: {
-      id: l.placement.studentId,
-      name: l.placement.student.user.name,
-      nis: l.placement.student.nis,
-      schoolName: l.placement.student.schoolName,
-      className: l.placement.student.className,
-      major: l.placement.student.major,
-      divisionName: l.placement.division.name,
-    },
-    attachments: l.attachments.map((a) => ({
-      id: a.id,
-      fileName: a.fileName,
-      fileType: a.fileType,
-      fileSize: a.fileSize,
-      formattedSize: formatFileSize(a.fileSize),
-    })),
-  }));
+  const mapLogItem = (l: (typeof pendingLogsRaw)[number]): LogReviewItem => {
+    const isOverdue =
+      l.status === "SUBMITTED" && new Date(l.logDate).getTime() < oneWeekAgo.getTime();
+    return {
+      id: l.id,
+      logDate: l.logDate.toISOString(),
+      formattedDate: formatWibDate(l.logDate),
+      startTime: l.startTime,
+      endTime: l.endTime,
+      taskFrom: l.taskFrom,
+      description: l.description,
+      output: l.output,
+      obstacle: l.obstacle,
+      status: l.status as "SUBMITTED" | "APPROVED",
+      submittedAt: l.submittedAt ? l.submittedAt.toISOString() : null,
+      formattedSubmittedAt: l.submittedAt
+        ? `${formatWibDate(l.submittedAt)} pukul ${formatWibTime(l.submittedAt)}`
+        : null,
+      approvedAt: l.approvedAt ? l.approvedAt.toISOString() : null,
+      isOverdue,
+      student: {
+        id: l.placement.studentId,
+        name: l.placement.student.user.name,
+        nis: l.placement.student.nis,
+        schoolName: l.placement.student.schoolName,
+        className: l.placement.student.className,
+        major: l.placement.student.major,
+        divisionName: l.placement.division.name,
+      },
+      attachments: l.attachments.map((a) => ({
+        id: a.id,
+        fileName: a.fileName,
+        fileType: a.fileType,
+        fileSize: a.fileSize,
+        formattedSize: formatFileSize(a.fileSize),
+      })),
+    };
+  };
+
+  const pendingItems: LogReviewItem[] = pendingLogsRaw.slice(0, SUBMITTED_LIMIT).map(mapLogItem);
+  const approvedItems: LogReviewItem[] = approvedLogsRaw.map(mapLogItem);
+
+  // Group pending by student untuk tombol setujui sekaligus per siswa
+  const studentPendingMap = new Map<string, { studentId: string; studentName: string; count: number }>();
+  for (const item of pendingItems) {
+    const cur = studentPendingMap.get(item.student.id);
+    if (cur) {
+      cur.count += 1;
+    } else {
+      studentPendingMap.set(item.student.id, {
+        studentId: item.student.id,
+        studentName: item.student.name,
+        count: 1,
+      });
+    }
+  }
+  const pendingByStudent = Array.from(studentPendingMap.values());
 
   return (
     <>
       <PageHeader
         title="Log Aktivitas Siswa"
-        description={`Tinjau log aktivitas terkirim dari siswa di ${mentor.division.name}.`}
+        description={`Tinjau dan setujui log aktivitas siswa di divisi ${mentor.division.name}.`}
       />
+
+      {overdueCount > 0 && (
+        <div className="mb-5">
+          <Notice tone="error">
+            <strong>Peringatan Penting:</strong> Terdapat {overdueCount} log aktivitas siswa di divisi Anda yang belum disetujui lebih dari 1 minggu. Mohon segera setujui log agar kegiatan siswa dapat masuk ke laporan resmi PKL.
+          </Notice>
+        </div>
+      )}
+
       <LogReviewManager
-        logs={viewItems}
+        logs={approvedItems}
+        pendingLogs={pendingItems}
+        pendingByStudent={pendingByStudent}
         students={studentOptions}
         activeFilters={{
           studentId: rawStudentId,
@@ -200,7 +255,7 @@ export default async function MentorLogPage(props: {
           toDate: validToDate,
         }}
         divisionName={mentor.division.name}
-        truncatedSubmitted={truncatedSubmitted}
+        isMentorView={true}
       />
     </>
   );

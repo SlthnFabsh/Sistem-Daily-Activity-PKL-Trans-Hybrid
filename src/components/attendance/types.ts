@@ -4,7 +4,7 @@ export type AttendanceStudentView = {
   id: string;
   name: string;
   nis: string | null;
-  schoolName: string;
+  schoolName: string | null;
   className: string | null;
   major: string | null;
   divisionName: string;
@@ -28,7 +28,7 @@ export type AttendanceReviewItem = {
 export type AttendanceStudentOption = {
   id: string;
   name: string;
-  schoolName?: string;
+  schoolName?: string | null;
   divisionName?: string;
 };
 

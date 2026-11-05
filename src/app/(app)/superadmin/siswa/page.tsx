@@ -21,6 +21,7 @@ export default async function SuperadminSiswaPage() {
     major: s.major ?? "",
     className: s.className ?? "",
     phone: s.phone ?? "",
+    profileCompleted: s.profileCompleted,
   }));
   return (
     <>

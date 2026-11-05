@@ -59,11 +59,7 @@ export const mentorSchema = z.object({
 
 export const studentSchema = z.object({
   ...personFields,
-  schoolName: z
-    .string()
-    .trim()
-    .min(2, "Sekolah wajib diisi.")
-    .max(150, "Nama sekolah maksimal 150 karakter."),
+  schoolName: optionalText(150, "Sekolah"),
   nis: optionalText(30, "NIS"),
   major: optionalText(60, "Jurusan"),
   className: optionalText(30, "Kelas"),

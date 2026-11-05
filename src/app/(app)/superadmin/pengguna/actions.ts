@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { hash } from "bcryptjs";
@@ -28,7 +28,7 @@ export async function saveMentor(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = mentorSchema.safeParse({
@@ -94,7 +94,7 @@ export async function saveMentor(
 }
 
 export async function deleteMentor(id: string): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const mentor = await prisma.mentor.findUnique({ where: { id } });
   if (!mentor) return { ok: false, message: "Pembimbing tidak ditemukan." };
@@ -109,7 +109,7 @@ export async function deleteMentor(id: string): Promise<ActionResult> {
 }
 
 export async function resetMentorPassword(id: string): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const mentor = await prisma.mentor.findUnique({
     where: { id },
@@ -135,7 +135,7 @@ export async function saveHrd(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = mentorSchema.safeParse({
@@ -192,7 +192,7 @@ export async function saveHrd(
 }
 
 export async function deleteHrd(id: string): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -214,7 +214,7 @@ export async function deleteHrd(id: string): Promise<ActionResult> {
 }
 
 export async function resetHrdPassword(id: string): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -236,3 +236,4 @@ export async function resetHrdPassword(id: string): Promise<ActionResult> {
     message: `Password ${user.name} direset menjadi: ${TEMP_PASSWORD}`,
   };
 }
+

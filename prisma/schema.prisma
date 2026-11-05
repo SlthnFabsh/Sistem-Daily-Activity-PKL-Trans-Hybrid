@@ -24,7 +24,8 @@ enum AttendanceStatus {
 enum LogStatus {
   DRAFT
   PENDING_REVIEW // log diimpor dari Excel, menunggu persetujuan HRD
-  SUBMITTED
+  SUBMITTED // dikirim siswa, menunggu persetujuan pembimbing
+  APPROVED // disetujui oleh pembimbing
 }
 
 enum PlacementStatus {
@@ -45,15 +46,16 @@ model User {
 }
 
 model Student {
-  id         String      @id @default(cuid())
-  userId     String      @unique
-  user       User        @relation(fields: [userId], references: [id])
-  nis        String?
-  schoolName String
-  major      String?
-  className  String?
-  phone      String?
-  placements Placement[]
+  id               String      @id @default(cuid())
+  userId           String      @unique
+  user             User        @relation(fields: [userId], references: [id])
+  nis              String?
+  schoolName       String?
+  major            String?
+  className        String?
+  phone            String?
+  profileCompleted Boolean     @default(false)
+  placements       Placement[]
 }
 
 model Division {
@@ -127,6 +129,8 @@ model ActivityLog {
   obstacle    String?
   status      LogStatus       @default(DRAFT)
   submittedAt DateTime? // diisi saat dikirim (jam server)
+  approvedAt  DateTime? // diisi saat disetujui pembimbing
+  approvedById String? // ID mentor / user yang menyetujui
   placement   Placement       @relation(fields: [placementId], references: [id])
   attachments LogAttachment[]
 }

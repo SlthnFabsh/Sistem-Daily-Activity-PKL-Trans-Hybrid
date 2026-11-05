@@ -140,7 +140,7 @@ export default async function LogPage(props: {
     prisma.activityLog.count({
       where: {
         placementId: placement.id,
-        status: "SUBMITTED",
+        status: { in: ["SUBMITTED", "APPROVED"] },
         logDate: { not: today },
       },
     }),
@@ -165,9 +165,9 @@ export default async function LogPage(props: {
     todayLogs.push(created);
   }
 
-  // Log SUBMITTED hari ini bisa diedit jika belum checkout
+  // Log SUBMITTED atau APPROVED hari ini
   const todaysSubmitted = todayLogs.find(
-    (log) => log.status === "SUBMITTED"
+    (log) => log.status === "SUBMITTED" || log.status === "APPROVED"
   );
 
   const totalPages = Math.max(
@@ -182,7 +182,7 @@ export default async function LogPage(props: {
       : await prisma.activityLog.findMany({
           where: {
             placementId: placement.id,
-            status: "SUBMITTED",
+            status: { in: ["SUBMITTED", "APPROVED"] },
             logDate: { not: today },
           },
           include: { attachments: true },
@@ -235,12 +235,16 @@ export default async function LogPage(props: {
           </section>
         )}
 
-        {/* Log SUBMITTED hari ini yang masih bisa diedit */}
+        {/* Log SUBMITTED / APPROVED hari ini yang masih bisa diedit jika belum checkout */}
         {todaysSubmitted && !todaysDraft && (
           <section>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-text">
               Log Hari Ini
-              <Badge tone="primary">Terkirim</Badge>
+              {todaysSubmitted.status === "APPROVED" ? (
+                <Badge tone="success">Disetujui</Badge>
+              ) : (
+                <Badge tone="primary">Menunggu Persetujuan</Badge>
+              )}
               {!lockedByCheckout && (
                 <span className="text-xs font-normal text-text-muted">
                   (masih bisa diedit sebelum absen pulang)
@@ -348,7 +352,11 @@ export default async function LogPage(props: {
                         {log.startTime} – {log.endTime} WIB · {log.taskFrom}
                       </p>
                     </div>
-                    <Badge tone="primary">Terkirim</Badge>
+                    {log.status === "APPROVED" ? (
+                      <Badge tone="success">Disetujui</Badge>
+                    ) : (
+                      <Badge tone="primary">Menunggu Persetujuan</Badge>
+                    )}
                   </div>
                   <p className="mt-2 line-clamp-2 text-sm text-text-muted">
                     {log.description}

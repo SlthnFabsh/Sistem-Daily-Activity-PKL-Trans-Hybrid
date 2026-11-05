@@ -3,6 +3,7 @@ import { requireAdminOrHrd } from "@/lib/permissions";
 import { formatWibDate, formatWibTime } from "@/lib/time";
 import { LogStatus } from "@/generated/prisma/client";
 import { PageHeader } from "@/components/ui/page-header";
+import { Notice } from "@/components/ui/notice";
 import { LogReviewManager } from "@/components/log-review/log-review-manager";
 import { HrdImportTrigger } from "@/components/log/hrd-import-trigger";
 import type {
@@ -17,8 +18,6 @@ function formatFileSize(bytes: number): string {
 }
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-// Batas baris log terkirim yang dirender sekaligus (halaman tetap ringan).
 const SUBMITTED_LIMIT = 300;
 
 export default async function HrdLogPage(props: {
@@ -26,7 +25,6 @@ export default async function HrdLogPage(props: {
 }) {
   await requireAdminOrHrd();
 
-  // Ambil parameter filter dari query URL
   const search = await props.searchParams;
   const rawStudentId =
     typeof search.studentId === "string" ? search.studentId : undefined;
@@ -40,7 +38,6 @@ export default async function HrdLogPage(props: {
   const validToDate =
     rawToDate && DATE_REGEX.test(rawToDate) ? rawToDate : undefined;
 
-  // Shared where clause tanpa status filter
   const placementFilter =
     rawStudentId && rawStudentId !== "all"
       ? { studentId: rawStudentId }
@@ -65,13 +62,85 @@ export default async function HrdLogPage(props: {
         student: {
           include: { user: { select: { name: true } } },
         },
-        division: { select: { name: true } },
+        division: {
+          include: {
+            mentors: {
+              include: { user: { select: { name: true } } },
+            },
+          },
+        },
       },
     },
   } as const;
 
-  // Jalankan query siswa, log SUBMITTED, dan log PENDING_REVIEW secara paralel
-  const [allStudents, submittedLogs, pendingLogs] = await Promise.all([
+  // Tanggal batas 7 hari lalu untuk deteksi log yang belum disetujui pembimbing > 1 minggu
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  // Ambil log yang menumpuk > 1 minggu (overdue approval) untuk notifikasi HRD
+  const overdueLogs = await prisma.activityLog.findMany({
+    where: {
+      status: LogStatus.SUBMITTED,
+      logDate: { lt: oneWeekAgo },
+    },
+    include: {
+      placement: {
+        include: {
+          student: { include: { user: { select: { name: true } } } },
+          division: {
+            include: {
+              mentors: {
+                where: { isPic: true },
+                include: { user: { select: { name: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { logDate: "asc" },
+  });
+
+  // Rekap overdue per divisi untuk HRD
+  const overdueByDivisionMap = new Map<
+    string,
+    {
+      divisionName: string;
+      mentorName: string;
+      studentNames: Set<string>;
+      count: number;
+    }
+  >();
+
+  for (const log of overdueLogs) {
+    const divId = log.placement.divisionId;
+    const divName = log.placement.division.name;
+    const pic = log.placement.division.mentors[0]?.user.name ?? "Belum ada PIC";
+    const studentName = log.placement.student.user.name;
+
+    const existing = overdueByDivisionMap.get(divId);
+    if (existing) {
+      existing.count += 1;
+      existing.studentNames.add(studentName);
+    } else {
+      overdueByDivisionMap.set(divId, {
+        divisionName: divName,
+        mentorName: pic,
+        studentNames: new Set([studentName]),
+        count: 1,
+      });
+    }
+  }
+
+  const overdueDivisionSummaries = Array.from(overdueByDivisionMap.values()).map(
+    (item) => ({
+      ...item,
+      studentsList: Array.from(item.studentNames).join(", "),
+    })
+  );
+
+  // Jalankan query siswa, log APPROVED/SUBMITTED, dan log PENDING_REVIEW
+  const [allStudents, allSubmittedLogs, pendingLogs] = await Promise.all([
     prisma.student.findMany({
       include: {
         user: { select: { name: true } },
@@ -85,16 +154,14 @@ export default async function HrdLogPage(props: {
     }),
     prisma.activityLog.findMany({
       where: {
-        status: LogStatus.SUBMITTED,
+        status: { in: [LogStatus.SUBMITTED, LogStatus.APPROVED] },
         ...(placementFilter ? { placement: placementFilter } : {}),
         ...(logDateFilter ? { logDate: logDateFilter } : {}),
       },
       include: includeClause,
       orderBy: [{ logDate: "desc" }, { submittedAt: "desc" }],
-      // Batasi jumlah baris supaya halaman tetap ringan di dataset besar.
       take: SUBMITTED_LIMIT + 1,
     }),
-    // PENDING_REVIEW: semua tanpa filter tanggal, tapi bisa filter per siswa
     prisma.activityLog.findMany({
       where: {
         status: LogStatus.PENDING_REVIEW,
@@ -112,40 +179,12 @@ export default async function HrdLogPage(props: {
     divisionName: s.placements[0]?.division.name,
   }));
 
-  type LogWithRelations = {
-    id: string;
-    logDate: Date;
-    startTime: string;
-    endTime: string;
-    taskFrom: string;
-    description: string;
-    output: string | null;
-    obstacle: string | null;
-    submittedAt: Date | null;
-    placementId: string;
-    attachments: {
-      id: string;
-      fileName: string;
-      fileType: string;
-      fileSize: number;
-    }[];
-    placement: {
-      studentId: string;
-      student: {
-        nis: string | null;
-        schoolName: string;
-        className: string | null;
-        major: string | null;
-        user: { name: string };
-      };
-      division: { name: string };
-    };
-  };
+  type LogItemRaw = (typeof allSubmittedLogs)[number];
 
-  function toViewItem(
-    l: LogWithRelations,
-    status: "SUBMITTED" | "PENDING_REVIEW"
-  ): LogReviewItem {
+  function toViewItem(l: LogItemRaw): LogReviewItem {
+    const isOverdue =
+      l.status === LogStatus.SUBMITTED &&
+      new Date(l.logDate).getTime() < oneWeekAgo.getTime();
     return {
       id: l.id,
       logDate: l.logDate.toISOString(),
@@ -156,11 +195,13 @@ export default async function HrdLogPage(props: {
       description: l.description,
       output: l.output,
       obstacle: l.obstacle,
-      status,
+      status: l.status as "SUBMITTED" | "PENDING_REVIEW" | "APPROVED",
       submittedAt: l.submittedAt ? l.submittedAt.toISOString() : null,
       formattedSubmittedAt: l.submittedAt
         ? `${formatWibDate(l.submittedAt)} pukul ${formatWibTime(l.submittedAt)}`
         : null,
+      approvedAt: l.approvedAt ? l.approvedAt.toISOString() : null,
+      isOverdue,
       student: {
         id: l.placement.studentId,
         name: l.placement.student.user.name,
@@ -180,12 +221,10 @@ export default async function HrdLogPage(props: {
     };
   }
 
-  const submittedItems = submittedLogs.slice(0, SUBMITTED_LIMIT).map((l) => toViewItem(l, "SUBMITTED"));
-  const truncatedSubmitted = submittedLogs.length > SUBMITTED_LIMIT;
-  const pendingItems = pendingLogs.map((l) => toViewItem(l, "PENDING_REVIEW"));
+  const submittedItems = allSubmittedLogs.slice(0, SUBMITTED_LIMIT).map(toViewItem);
+  const truncatedSubmitted = allSubmittedLogs.length > SUBMITTED_LIMIT;
+  const pendingItems = pendingLogs.map(toViewItem);
 
-
-  // Kelompokkan pending per siswa (untuk tombol Setujui Semua)
   const pendingByStudent = new Map<string, { studentId: string; studentName: string; count: number }>();
   for (const item of pendingItems) {
     const existing = pendingByStudent.get(item.student.id);
@@ -204,9 +243,21 @@ export default async function HrdLogPage(props: {
     <>
       <PageHeader
         title="Log Aktivitas Siswa"
-        description="Tinjau log aktivitas terkirim dari seluruh siswa."
+        description="Tinjau log aktivitas terkirim dan pantau persetujuan pembimbing."
         action={<HrdImportTrigger students={studentOptions} />}
       />
+
+      {/* Peringatan HRD: Pembimbing belum approve log > 1 minggu */}
+      {overdueDivisionSummaries.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {overdueDivisionSummaries.map((summary) => (
+            <Notice key={summary.divisionName} tone="error">
+              <strong>Pemberitahuan Keterlambatan:</strong> Terdapat {summary.count} log siswa di divisi <strong>{summary.divisionName}</strong> (Siswa: {summary.studentsList}) yang belum disetujui lebih dari 1 minggu oleh Pembimbing (<strong>{summary.mentorName}</strong>). HRD disarankan segera menghubungi pembimbing terkait secara langsung.
+            </Notice>
+          ))}
+        </div>
+      )}
+
       <LogReviewManager
         logs={submittedItems}
         pendingLogs={pendingItems}

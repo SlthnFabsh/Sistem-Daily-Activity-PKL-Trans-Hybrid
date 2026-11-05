@@ -107,9 +107,9 @@ export async function GET(req: NextRequest) {
   const logWhere: {
     placementId?: string;
     placement?: { studentId: string };
-    status: "SUBMITTED";
+    status: "APPROVED";
     logDate?: { gte?: Date; lte?: Date };
-  } = { status: "SUBMITTED" };
+  } = { status: "APPROVED" };
 
   if (placement) {
     logWhere.placementId = placement.id;
@@ -268,7 +268,7 @@ export async function GET(req: NextRequest) {
   const data: PdfReportData = {
     studentName: student.user.name,
     studentNis: student.nis ?? "",
-    schoolName: student.schoolName,
+    schoolName: student.schoolName ?? "",
     major: student.major ?? "",
     className: student.className ?? "",
     phone: student.phone ?? "",

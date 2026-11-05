@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { hash } from "bcryptjs";
@@ -22,7 +22,7 @@ export async function saveStudent(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = studentSchema.safeParse({
@@ -92,7 +92,7 @@ export async function saveStudent(
 }
 
 export async function deleteStudent(id: string): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const student = await prisma.student.findUnique({
     where: { id },
@@ -118,7 +118,7 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
 }
 
 export async function resetStudentPassword(id: string): Promise<ActionResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const student = await prisma.student.findUnique({
     where: { id },
@@ -162,7 +162,7 @@ export async function importStudents(
   _prev: ImportResult,
   formData: FormData
 ): Promise<ImportResult> {
-  await requireRole("SUPERADMIN");
+  await requireRole(["SUPERADMIN", "HRD"]);
 
   const file = formData.get("file");
   if (!file || typeof (file as File).arrayBuffer !== "function") {
@@ -286,3 +286,4 @@ export async function importStudents(
 function failImport(message: string): ImportResult {
   return { ok: false, imported: 0, failed: 0, rows: [], message };
 }
+

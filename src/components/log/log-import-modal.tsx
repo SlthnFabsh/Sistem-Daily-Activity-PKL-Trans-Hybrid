@@ -20,7 +20,7 @@ const initialImportState: ImportResult = {
 export type StudentOptionForImport = {
   id: string;
   name: string;
-  schoolName?: string;
+  schoolName?: string | null;
   divisionName?: string;
 };
 

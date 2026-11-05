@@ -229,6 +229,7 @@ Prinsip: **sesimple mungkin**. Tampilan bersih, putih, dengan satu warna aksen b
 - Mobile (siswa memakai HP): sidebar berubah menjadi **menu bawah (bottom navigation)** dengan maksimal 4 item, aktif ditandai biru. Jangan memakai hamburger yang rumit.
 - Ikon: `lucide-react` (gaya outline). Jangan pakai ikon dari library lain.
 
+
 **Komponen dan gaya:**
 - Satu font sans-serif sistem atau Inter. Judul halaman `text-xl font-semibold`, isi `text-sm`/`text-base`.
 - Kartu: putih, border tipis `#E2E8F0`, sudut `rounded-xl`, **tanpa bayangan tebal**.

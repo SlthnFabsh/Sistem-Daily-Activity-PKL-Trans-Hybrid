@@ -11,7 +11,7 @@ import { Notice } from "@/components/ui/notice";
 export type StudentOption = {
   id: string;
   name: string;
-  schoolName?: string;
+  schoolName?: string | null;
   divisionName?: string;
 };
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
+import { Badge } from "@/components/ui/badge";
 
 const initialState: ActionResult = { ok: false };
 const importInitialState: ImportResult = {
@@ -37,10 +38,11 @@ export type StudentView = {
   name: string;
   email: string;
   nis: string;
-  schoolName: string;
+  schoolName: string | null;
   major: string;
   className: string;
   phone: string;
+  profileCompleted: boolean;
 };
 
 export function StudentManager({
@@ -167,38 +169,8 @@ export function StudentManager({
               />
             </div>
             <Input
-              name="schoolName"
-              label="Sekolah"
-              placeholder="Nama sekolah"
-              defaultValue={editing?.schoolName ?? ""}
-              error={state.fieldErrors?.schoolName?.[0]}
-            />
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Input
-                name="nis"
-                label="NIS"
-                placeholder="Nomor induk siswa"
-                defaultValue={editing?.nis ?? ""}
-                error={state.fieldErrors?.nis?.[0]}
-              />
-              <Input
-                name="major"
-                label="Jurusan"
-                placeholder="mis. RPL"
-                defaultValue={editing?.major ?? ""}
-                error={state.fieldErrors?.major?.[0]}
-              />
-              <Input
-                name="className"
-                label="Kelas"
-                placeholder="mis. XII RPL 2"
-                defaultValue={editing?.className ?? ""}
-                error={state.fieldErrors?.className?.[0]}
-              />
-            </div>
-            <Input
               name="phone"
-              label="Telepon"
+              label="Telepon (opsional)"
               placeholder="mis. 0812-3456-7890"
               defaultValue={editing?.phone ?? ""}
               error={state.fieldErrors?.phone?.[0]}
@@ -207,8 +179,8 @@ export function StudentManager({
               {pending ? "Menyimpan..." : editing ? "Simpan perubahan" : "Simpan"}
             </Button>
             <p className="text-xs text-text-muted">
-              Akun login dibuat dengan password sementara. Setelah dibuat, gunakan
-              tombol &quot;Reset password&quot; bila siswa lupa.
+              Akun login dibuat dengan password sementara. Siswa melengkapi biodata
+              (NIS, sekolah, kelas, jurusan) sendiri setelah login pertama.
             </p>
           </form>
         </Card>
@@ -221,9 +193,9 @@ export function StudentManager({
           <h2 className="text-sm font-semibold text-text">Import siswa dari Excel</h2>
         </div>
         <p className="mb-3 text-xs text-text-muted">
-          Kolom: Nama, Email, NIS, Sekolah, Jurusan, Kelas, Telepon. Baris yang
-          valid langsung disimpan; baris yang bermasalah dicatat tanpa menggagalkan
-          yang lain.
+          Kolom: Nama, Email, Telepon. Biodata (NIS, Sekolah, Jurusan, Kelas) dilengkapi
+          siswa sendiri setelah login. Baris yang valid langsung disimpan; baris yang
+          bermasalah dicatat tanpa menggagalkan yang lain.
         </p>
         <form action={importAction} className="space-y-3">
           <input
@@ -313,7 +285,7 @@ export function StudentManager({
               <thead className="bg-surface-muted text-xs font-semibold uppercase text-text-muted">
                 <tr>
                   <th className="px-4 py-2.5">Siswa</th>
-                  <th className="px-4 py-2.5">Sekolah</th>
+                  <th className="px-4 py-2.5">Status Profil</th>
                   <th className="px-4 py-2.5">Telepon</th>
                   <th className="px-4 py-2.5 text-right">Aksi</th>
                 </tr>
@@ -324,13 +296,13 @@ export function StudentManager({
                     <td className="px-4 py-2.5">
                       <p className="font-medium text-text">{s.name}</p>
                       <p className="text-xs text-text-muted">{s.email}</p>
-                      {s.nis && <p className="text-xs text-text-muted">NIS {s.nis}</p>}
                     </td>
                     <td className="px-4 py-2.5">
-                      <p className="text-text">{s.schoolName}</p>
-                      <p className="text-xs text-text-muted">
-                        {[s.major, s.className].filter(Boolean).join(" - ")}
-                      </p>
+                      {s.profileCompleted ? (
+                        <Badge tone="success">Lengkap</Badge>
+                      ) : (
+                        <Badge tone="neutral">Perlu dilengkapi</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-text-muted">{s.phone || "-"}</td>
                     <td className="px-4 py-2.5">
@@ -379,51 +351,58 @@ export function StudentManager({
 
           {/* Mobile */}
           <div className="space-y-2 md:hidden">
+          {/* Mobile */}
+          <div className="space-y-2 md:hidden">
             {students.map((s) => (
               <Card key={s.id} className="p-3">
-                <div className="flex items-start justify-between gap-2">
+                <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-text">{s.name}</p>
                     <p className="text-xs text-text-muted">{s.email}</p>
-                    <p className="mt-1 text-xs text-text-muted">{s.schoolName}</p>
-                    {s.nis && <p className="text-xs text-text-muted">NIS {s.nis}</p>}
+                    {s.phone && <p className="mt-1 text-xs text-text-muted">{s.phone}</p>}
                   </div>
-                  <div className="flex flex-shrink-0 flex-col gap-1.5">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="px-2.5 py-1"
-                      onClick={() => openEdit(s.id)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" aria-hidden />
-                    </Button>                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="px-2.5 py-1"
-                      onClick={() =>
-                        runAction(
-                          () =>
-                            actions.resetPassword(s.id),
-                          "Reset password siswa ini?"
-                        )
-                      }
-                    >
-                      <KeyRound className="h-3.5 w-3.5" aria-hidden />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="danger"
-                      className="px-2.5 py-1"
-                      onClick={() =>
-                        runAction(() => actions.delete(s.id), "Hapus siswa ini?")
-                      }
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                    </Button>
-                  </div>
+                  {s.profileCompleted ? (
+                    <Badge tone="success">Lengkap</Badge>
+                  ) : (
+                    <Badge tone="neutral">Perlu dilengkapi</Badge>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="flex-1 px-2.5 py-1.5 text-xs"
+                    onClick={() => openEdit(s.id)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" aria-hidden /> Edit
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="px-2.5 py-1.5"
+                    onClick={() =>
+                      runAction(
+                        () => actions.resetPassword(s.id),
+                        "Reset password siswa ini?"
+                      )
+                    }
+                  >
+                    <KeyRound className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    className="px-2.5 py-1.5"
+                    onClick={() =>
+                      runAction(() => actions.delete(s.id), "Hapus siswa ini?")
+                    }
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
                 </div>
               </Card>
             ))}
+          </div>
           </div>
         </>
       )}

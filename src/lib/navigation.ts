@@ -44,6 +44,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/student/log", label: "Log Aktivitas", short: "Log", icon: "clipboard-list" },
     { href: "/student/riwayat", label: "Riwayat", icon: "history" },
     { href: "/student/laporan", label: "Laporan", icon: "file-text" },
+    { href: "/student/profile", label: "Profil Saya", short: "Profil", icon: "graduation-cap" },
     { href: "/settings/password", label: "Ganti Password", short: "Password", icon: "key-round" },
   ],
   MENTOR: [
@@ -57,8 +58,8 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { href: "/hrd/absensi", label: "Absensi Siswa", short: "Absensi", icon: "calendar-check" },
     { href: "/hrd/log", label: "Log Siswa", short: "Log", icon: "clipboard-list" },
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
-    { href: "/hrd/pic", label: "Lihat PIC", short: "PIC", icon: "users" },
-    { href: "/hrd/siswa", label: "Lihat Siswa", short: "Siswa", icon: "graduation-cap" },
+    { href: "/hrd/pic", label: "Pembimbing", short: "Pembimbing", icon: "users" },
+    { href: "/hrd/siswa", label: "Siswa", short: "Siswa", icon: "graduation-cap" },
     { href: "/settings/password", label: "Ganti Password", short: "Password", icon: "key-round" },
   ],
   SUPERADMIN: [
