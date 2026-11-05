@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionForm } from "@/lib/use-action-form";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { completeProfile } from "../actions";
+import { useActionForm } from "@/lib/use-action-form";
+import { completeProfile } from "@/app/(app)/student/profile/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
@@ -13,8 +12,7 @@ import type { ActionResult } from "@/lib/action-result";
 
 const initialState: ActionResult = { ok: false };
 
-export default function ProfileSetupPage() {
-  const router = useRouter();
+export function ProfileSetupForm() {
   const [state, formAction, pending] = useActionForm(
     completeProfile,
     initialState
@@ -22,10 +20,10 @@ export default function ProfileSetupPage() {
 
   useEffect(() => {
     if (state.ok) {
-      router.push("/student/absensi");
-      router.refresh();
+      // Muat ulang penuh supaya layout membaca status profil terbaru dari database.
+      window.location.replace("/student/absensi");
     }
-  }, [state.ok, router]);
+  }, [state.ok]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-soft/30 via-white to-cyan-soft/20 px-4 py-12">

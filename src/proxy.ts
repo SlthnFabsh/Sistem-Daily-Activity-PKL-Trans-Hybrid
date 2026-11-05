@@ -48,20 +48,6 @@ export default auth((req: NextAuthRequest) => {
     return NextResponse.redirect(new URL(homePathForRole(role), nextUrl));
   }
 
-  // Jika siswa belum melengkapi profil (NIS, sekolah, dsb.), arahkan ke /student/profile/setup
-  if (role === "STUDENT") {
-    const isProfileSetup = path.startsWith("/student/profile/setup");
-    const isProfileRoute = path.startsWith("/student/profile");
-
-    if (user && !user.profileCompleted && !isProfileRoute) {
-      return NextResponse.redirect(new URL("/student/profile/setup", nextUrl));
-    }
-
-    if (user && user.profileCompleted && isProfileSetup) {
-      return NextResponse.redirect(new URL("/student/absensi", nextUrl));
-    }
-  }
-
   return NextResponse.next();
 });
 

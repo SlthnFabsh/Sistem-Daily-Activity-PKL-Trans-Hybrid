@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
 import type { ActionResult } from "@/lib/action-result";
 import { toFieldErrors } from "@/lib/action-result";
@@ -63,18 +63,8 @@ export async function completeProfile(
     },
   });
 
-  // Trigger session refresh
-  try {
-    await signIn("credentials", {
-      email: session.user.email!,
-      password: "__session_refresh__",
-      redirect: false,
-    });
-  } catch {
-    // Ignore auth errors during refresh
-  }
-
   revalidatePath("/student/profile");
+  revalidatePath("/student");
   return { ok: true, message: "Profil berhasil dilengkapi" };
 }
 
