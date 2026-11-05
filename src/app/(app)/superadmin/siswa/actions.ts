@@ -25,17 +25,26 @@ export async function saveStudent(
   await requireRole(["SUPERADMIN", "HRD"]);
 
   const id = formData.get("id")?.toString().trim() ?? "";
+  // Field biodata bersifat opsional dan tidak selalu ada di form (mis. form HRD
+  // hanya berisi nama/email/telepon). `formData.get` mengembalikan null untuk
+  // field yang tidak dikirim, sedangkan skema Zod hanya menerima string, jadi
+  // kosongkan dulu agar tidak gagal validasi.
+  const text = (key: string) => formData.get(key)?.toString() ?? "";
   const parsed = studentSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    schoolName: formData.get("schoolName"),
-    nis: formData.get("nis"),
-    major: formData.get("major"),
-    className: formData.get("className"),
-    phone: formData.get("phone"),
+    name: text("name"),
+    email: text("email"),
+    schoolName: text("schoolName"),
+    nis: text("nis"),
+    major: text("major"),
+    className: text("className"),
+    phone: text("phone"),
   });
   if (!parsed.success) {
-    return { ok: false, fieldErrors: toFieldErrors(parsed.error) };
+    return {
+      ok: false,
+      message: "Periksa kembali data siswa.",
+      fieldErrors: toFieldErrors(parsed.error),
+    };
   }
 
   const { name, email, schoolName, nis, major, className, phone } = parsed.data;

@@ -28,6 +28,9 @@ export function useActionFeedback<T extends FeedbackResult>(state: T) {
       setEditingId(null);
     } else if (state.fieldErrors?.form?.[0]) {
       setError(state.fieldErrors.form[0]);
+    } else if (state.message) {
+      // Tampilkan pesan gagal walau error bukan pada field yang sedang tampil.
+      setError(state.message);
     }
   }
 

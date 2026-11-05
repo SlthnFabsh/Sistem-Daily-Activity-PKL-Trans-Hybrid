@@ -351,8 +351,6 @@ export function StudentManager({
 
           {/* Mobile */}
           <div className="space-y-2 md:hidden">
-          {/* Mobile */}
-          <div className="space-y-2 md:hidden">
             {students.map((s) => (
               <Card key={s.id} className="p-3">
                 <div className="mb-2 flex items-start justify-between gap-2">
@@ -402,7 +400,6 @@ export function StudentManager({
                 </div>
               </Card>
             ))}
-          </div>
           </div>
         </>
       )}
