@@ -79,17 +79,11 @@ export function StudentManager({
     dismiss,
   } = useActionFeedback(state);
 
-  useEffect(() => {
-    if (state.ok) {
-      router.refresh();
-    }
-  }, [state, router]);
-
   const [prevImportState, setPrevImportState] = useState(importState);
   if (importState !== prevImportState) {
     setPrevImportState(importState);
     if (importState.ok) {
-      setImportKey((k) => k + 1); // input file di-remount agar bisa impor ulang
+      setImportKey((k) => k + 1);
       setImportDismissed(false);
     }
   }

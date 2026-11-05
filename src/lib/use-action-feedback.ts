@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type FeedbackResult = {
   ok: boolean;
@@ -9,9 +10,9 @@ type FeedbackResult = {
 };
 
 // Menyederhanakan reaksi terhadap hasil server action: menutup form, menampilkan
-// pesan sukses/gagal. Memakai pola "menyesuaikan state saat render" alih-alih
-// setState di dalam effect agar tidak memicu render berantai.
+// pesan sukses/gagal, dan me-refresh data halaman setelah aksi berhasil.
 export function useActionFeedback<T extends FeedbackResult>(state: T) {
+  const router = useRouter();
   const [prevState, setPrevState] = useState<T>(state);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,14 @@ export function useActionFeedback<T extends FeedbackResult>(state: T) {
       setError(state.fieldErrors.form[0]);
     }
   }
+
+  // Refresh data halaman setelah aksi berhasil agar daftar terupdate
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   return {
     notice,
