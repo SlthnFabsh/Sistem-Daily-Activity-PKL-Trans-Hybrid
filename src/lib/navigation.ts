@@ -55,6 +55,8 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
   ],
   HRD: [
     { href: "/hrd/penempatan", label: "Penempatan", icon: "map-pin" },
+    { href: "/hrd/divisi", label: "Divisi", icon: "building-2" },
+    { href: "/hrd/periode", label: "Periode", icon: "calendar-range" },
     { href: "/hrd/absensi", label: "Absensi Siswa", short: "Absensi", icon: "calendar-check" },
     { href: "/hrd/log", label: "Log Siswa", short: "Log", icon: "clipboard-list" },
     { href: "/hrd/laporan", label: "Laporan", icon: "file-text" },
