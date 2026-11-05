@@ -83,6 +83,7 @@ export async function saveStudent(
   }
 
   revalidatePath("/superadmin/siswa");
+  revalidatePath("/hrd/siswa");
   return {
     ok: true,
     message: id
@@ -114,6 +115,7 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
   ]);
 
   revalidatePath("/superadmin/siswa");
+  revalidatePath("/hrd/siswa");
   return { ok: true, message: "Siswa dihapus." };
 }
 
@@ -133,6 +135,7 @@ export async function resetStudentPassword(id: string): Promise<ActionResult> {
   });
 
   revalidatePath("/superadmin/siswa");
+  revalidatePath("/hrd/siswa");
   return {
     ok: true,
     message: `Password ${student.user.name} direset menjadi: ${TEMP_PASSWORD}`,
@@ -274,6 +277,7 @@ export async function importStudents(
   }
 
   revalidatePath("/superadmin/siswa");
+  revalidatePath("/hrd/siswa");
   return {
     ok: true,
     imported,

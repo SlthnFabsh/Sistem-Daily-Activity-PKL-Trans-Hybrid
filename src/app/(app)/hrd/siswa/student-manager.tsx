@@ -79,6 +79,12 @@ export function StudentManager({
     dismiss,
   } = useActionFeedback(state);
 
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+    }
+  }, [state, router]);
+
   const [prevImportState, setPrevImportState] = useState(importState);
   if (importState !== prevImportState) {
     setPrevImportState(importState);

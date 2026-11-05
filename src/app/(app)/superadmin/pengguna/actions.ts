@@ -85,6 +85,7 @@ export async function saveMentor(
   }
 
   revalidatePath("/superadmin/pengguna");
+  revalidatePath("/hrd/pic");
   return {
     ok: true,
     message: id
@@ -105,6 +106,7 @@ export async function deleteMentor(id: string): Promise<ActionResult> {
   ]);
 
   revalidatePath("/superadmin/pengguna");
+  revalidatePath("/hrd/pic");
   return { ok: true, message: "Pembimbing dihapus." };
 }
 
@@ -124,6 +126,7 @@ export async function resetMentorPassword(id: string): Promise<ActionResult> {
   });
 
   revalidatePath("/superadmin/pengguna");
+  revalidatePath("/hrd/pic");
   return {
     ok: true,
     message: `Password ${mentor.user.name} direset menjadi: ${TEMP_PASSWORD}`,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useActionForm } from "@/lib/use-action-form";
 import { useRouter } from "next/navigation";
 import { KeyRound, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -60,6 +61,12 @@ export function MentorManager({
     setError,
     dismiss,
   } = useActionFeedback(state);
+
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+    }
+  }, [state, router]);
 
   const editing = mentors.find((m) => m.id === editingId) ?? null;
 
