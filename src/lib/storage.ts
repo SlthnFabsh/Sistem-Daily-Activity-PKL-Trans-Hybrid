@@ -179,6 +179,16 @@ export async function uploadAttendancePhoto(
   return filePath;
 }
 
+/** Hapus foto attendance dari storage. */
+export async function deleteAttendancePhotoFromStorage(
+  filePath: string
+): Promise<void> {
+  const { error } = await getAdminClient()
+    .storage.from(ATTENDANCE_BUCKET)
+    .remove([filePath]);
+  if (error) throw new Error(`Gagal menghapus foto: ${error.message}`);
+}
+
 /** Buat signed URL untuk preview foto attendance (berumur pendek). */
 export async function createAttendancePhotoUrl(
   filePath: string,

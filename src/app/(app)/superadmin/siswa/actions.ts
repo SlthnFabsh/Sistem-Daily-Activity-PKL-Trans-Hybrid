@@ -13,6 +13,10 @@ import {
   type ActionResult,
   type ImportResult,
 } from "@/lib/action-result";
+import {
+  deleteAttendancePhotoFromStorage,
+  deleteFileFromStorage,
+} from "@/lib/storage";
 
 const SALT_ROUNDS = 10;
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -106,26 +110,75 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
 
   const student = await prisma.student.findUnique({
     where: { id },
-    select: { userId: true },
+    select: {
+      userId: true,
+      placements: {
+        select: {
+          id: true,
+          periodId: true,
+          attendances: { select: { photoPath: true } },
+          logs: { select: { attachments: { select: { filePath: true } } } },
+        },
+      },
+    },
   });
   if (!student) return { ok: false, message: "Siswa tidak ditemukan." };
 
-  const placements = await prisma.placement.count({ where: { studentId: id } });
-  if (placements > 0) {
-    return {
-      ok: false,
-      message: "Siswa masih memiliki penempatan. Hapus penempatannya terlebih dahulu.",
-    };
-  }
+  const placementIds = student.placements.map((p) => p.id);
+  const periodIds = [...new Set(student.placements.map((p) => p.periodId))];
 
-  await prisma.$transaction([
-    prisma.student.delete({ where: { id } }),
-    prisma.user.delete({ where: { id: student.userId } }),
+  // Hapus file di Supabase Storage lebih dulu; abaikan jika file sudah tidak ada.
+  const photoPaths = student.placements
+    .flatMap((p) => p.attendances)
+    .map((a) => a.photoPath)
+    .filter((path): path is string => Boolean(path));
+  const attachmentPaths = student.placements
+    .flatMap((p) => p.logs)
+    .flatMap((l) => l.attachments)
+    .map((a) => a.filePath);
+
+  await Promise.all([
+    ...photoPaths.map((p) => deleteAttendancePhotoFromStorage(p).catch(() => {})),
+    ...attachmentPaths.map((p) => deleteFileFromStorage(p).catch(() => {})),
   ]);
+
+  await prisma.$transaction(async (tx) => {
+    if (placementIds.length > 0) {
+      await tx.logAttachment.deleteMany({
+        where: { log: { placementId: { in: placementIds } } },
+      });
+      await tx.activityLog.deleteMany({
+        where: { placementId: { in: placementIds } },
+      });
+      await tx.attendance.deleteMany({
+        where: { placementId: { in: placementIds } },
+      });
+    }
+    await tx.placement.deleteMany({ where: { studentId: id } });
+    await tx.passwordResetRequest.deleteMany({
+      where: { userId: student.userId },
+    });
+    await tx.student.delete({ where: { id } });
+    await tx.user.delete({ where: { id: student.userId } });
+  });
+
+  // Bersihkan periode PKL yang tidak lagi dipakai penempatan mana pun.
+  for (const periodId of periodIds) {
+    const used = await prisma.placement.count({ where: { periodId } });
+    if (used === 0) {
+      await prisma.pklPeriod.delete({ where: { id: periodId } }).catch(() => {});
+    }
+  }
 
   revalidatePath("/superadmin/siswa");
   revalidatePath("/hrd/siswa");
-  return { ok: true, message: "Siswa dihapus." };
+  revalidatePath("/hrd/penempatan");
+  revalidatePath("/hrd/log");
+  revalidatePath("/hrd/absensi");
+  return {
+    ok: true,
+    message: "Siswa beserta seluruh riwayat absensi dan log berhasil dihapus.",
+  };
 }
 
 export async function resetStudentPassword(id: string): Promise<ActionResult> {

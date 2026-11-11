@@ -335,7 +335,7 @@ export function StudentManager({
                           onClick={() =>
                             runAction(
                               () => actions.delete(s.id),
-                              "Hapus siswa ini?"
+                              "Hapus siswa ini beserta SELURUH riwayat absensi, log, dan lampirannya? Tindakan ini permanen dan tidak bisa dibatalkan."
                             )
                           }
                         >
@@ -392,7 +392,10 @@ export function StudentManager({
                     variant="danger"
                     className="px-2.5 py-1.5"
                     onClick={() =>
-                      runAction(() => actions.delete(s.id), "Hapus siswa ini?")
+                      runAction(
+                        () => actions.delete(s.id),
+                        "Hapus siswa ini beserta SELURUH riwayat absensi, log, dan lampirannya? Tindakan ini permanen dan tidak bisa dibatalkan."
+                      )
                     }
                   >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden />
