@@ -10,7 +10,7 @@ import {
 export default async function PenempatanPage() {
   await requireAdminOrHrd();
 
-  const [placements, students, periods, divisions] = await Promise.all([
+  const [placements, students, divisions] = await Promise.all([
     prisma.placement.findMany({
       include: {
         student: { include: { user: { select: { name: true } } } },
@@ -23,7 +23,6 @@ export default async function PenempatanPage() {
       include: { user: { select: { name: true } } },
       orderBy: { user: { name: "asc" } },
     }),
-    prisma.pklPeriod.findMany({ orderBy: { startDate: "desc" } }),
     prisma.division.findMany({ orderBy: { name: "asc" } }),
   ]);
 
@@ -32,7 +31,8 @@ export default async function PenempatanPage() {
     studentId: p.studentId,
     studentName: p.student.user.name,
     periodId: p.periodId,
-    periodName: `${p.period.name} (${p.period.startDate.toISOString().slice(0, 10)} s.d. ${p.period.endDate.toISOString().slice(0, 10)})`,
+    periodStartDate: p.period.startDate.toISOString().slice(0, 10),
+    periodEndDate: p.period.endDate.toISOString().slice(0, 10),
     divisionId: p.divisionId,
     divisionName: p.division.name,
     workStart: p.workStart,
@@ -42,11 +42,7 @@ export default async function PenempatanPage() {
 
   const studentOptions: Option[] = students.map((s) => ({
     id: s.id,
-    label: `${s.user.name} (${s.schoolName})`,
-  }));
-  const periodOptions: Option[] = periods.map((p) => ({
-    id: p.id,
-    label: `${p.name} (${p.startDate.toISOString().slice(0, 10)} s.d. ${p.endDate.toISOString().slice(0, 10)})`,
+    label: s.schoolName ? `${s.user.name} (${s.schoolName})` : s.user.name,
   }));
   const divisionOptions: Option[] = divisions.map((d) => ({
     id: d.id,
@@ -62,7 +58,6 @@ export default async function PenempatanPage() {
       <PlacementManager
         placements={view}
         students={studentOptions}
-        periods={periodOptions}
         divisions={divisionOptions}
       />
     </>

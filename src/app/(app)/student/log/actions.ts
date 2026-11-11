@@ -40,7 +40,7 @@ export async function saveLogDraft(
     endTime: formData.get("endTime"),
     taskFrom: formData.get("taskFrom"),
     description: formData.get("description"),
-    output: formData.get("output") || undefined,
+    output: formData.get("output") as string,
     obstacle: formData.get("obstacle") || undefined,
   });
   if (!parsed.success) {
@@ -70,7 +70,7 @@ export async function saveLogDraft(
     endTime: parsed.data.endTime,
     taskFrom: parsed.data.taskFrom,
     description: parsed.data.description,
-    output: parsed.data.output || null,
+    output: parsed.data.output,
     obstacle: parsed.data.obstacle || null,
   };
 
@@ -163,7 +163,7 @@ export async function submitLog(
     endTime: formData.get("endTime"),
     taskFrom: formData.get("taskFrom"),
     description: formData.get("description"),
-    output: formData.get("output") || undefined,
+    output: formData.get("output") as string,
     obstacle: formData.get("obstacle") || undefined,
   });
   if (!parsed.success) {
@@ -217,7 +217,7 @@ export async function submitLog(
       endTime: parsed.data.endTime,
       taskFrom: parsed.data.taskFrom,
       description: parsed.data.description,
-      output: parsed.data.output || null,
+      output: parsed.data.output,
       obstacle: parsed.data.obstacle || null,
       status: LogStatus.SUBMITTED,
       submittedAt: new Date(),
@@ -244,7 +244,7 @@ export async function updateSubmittedLog(
     endTime: formData.get("endTime"),
     taskFrom: formData.get("taskFrom"),
     description: formData.get("description"),
-    output: formData.get("output") || undefined,
+    output: formData.get("output") as string,
     obstacle: formData.get("obstacle") || undefined,
   });
   if (!parsed.success) {
@@ -287,7 +287,7 @@ export async function updateSubmittedLog(
       endTime: parsed.data.endTime,
       taskFrom: parsed.data.taskFrom,
       description: parsed.data.description,
-      output: parsed.data.output || null,
+      output: parsed.data.output,
       obstacle: parsed.data.obstacle || null,
       // submittedAt diperbarui ke waktu edit terakhir
       submittedAt: new Date(),

@@ -6,7 +6,7 @@ import { requireAdminOrHrd } from "@/lib/permissions";
 import { placementSchema } from "@/lib/validations";
 import { toFieldErrors, type ActionResult } from "@/lib/action-result";
 
-// Membuat atau memperbarui penempatan. Bila ada `id` berarti edit.
+// Membuat atau memperbarui penempatan. Periode PKL diinput langsung oleh HRD.
 export async function savePlacement(
   _prev: ActionResult,
   formData: FormData
@@ -16,7 +16,8 @@ export async function savePlacement(
   const id = formData.get("id")?.toString().trim() ?? "";
   const parsed = placementSchema.safeParse({
     studentId: formData.get("studentId"),
-    periodId: formData.get("periodId"),
+    periodStartDate: formData.get("periodStartDate"),
+    periodEndDate: formData.get("periodEndDate"),
     divisionId: formData.get("divisionId"),
     workStart: formData.get("workStart"),
     workEnd: formData.get("workEnd"),
@@ -26,30 +27,87 @@ export async function savePlacement(
     return { ok: false, fieldErrors: toFieldErrors(parsed.error) };
   }
 
-  const { studentId, periodId, divisionId, workStart, workEnd, status } =
-    parsed.data;
+  const {
+    studentId,
+    periodStartDate,
+    periodEndDate,
+    divisionId,
+    workStart,
+    workEnd,
+    status,
+  } = parsed.data;
 
-  const duplicate = await prisma.placement.findFirst({
-    where: {
-      studentId,
-      periodId,
-      ...(id ? { id: { not: id } } : {}),
-    },
-  });
-  if (duplicate) {
-    return {
-      ok: false,
-      fieldErrors: {
-        studentId: ["Siswa sudah memiliki penempatan di periode PKL ini."],
-      },
-    };
-  }
+  const startDate = new Date(`${periodStartDate}T00:00:00.000Z`);
+  const endDate = new Date(`${periodEndDate}T00:00:00.000Z`);
+  const periodName = `${periodStartDate} s.d. ${periodEndDate}`;
 
-  const data = { studentId, periodId, divisionId, workStart, workEnd, status };
   if (id) {
-    await prisma.placement.update({ where: { id }, data });
+    const existing = await prisma.placement.findUnique({
+      where: { id },
+      include: { period: true },
+    });
+    if (!existing) {
+      return { ok: false, message: "Penempatan tidak ditemukan." };
+    }
+
+    const otherWithSamePeriod = await prisma.placement.count({
+      where: {
+        periodId: existing.periodId,
+        id: { not: id },
+      },
+    });
+
+    let targetPeriodId = existing.periodId;
+    if (otherWithSamePeriod > 0) {
+      const newPeriod = await prisma.pklPeriod.create({
+        data: {
+          name: periodName,
+          startDate,
+          endDate,
+        },
+      });
+      targetPeriodId = newPeriod.id;
+    } else {
+      await prisma.pklPeriod.update({
+        where: { id: existing.periodId },
+        data: {
+          name: periodName,
+          startDate,
+          endDate,
+        },
+      });
+    }
+
+    await prisma.placement.update({
+      where: { id },
+      data: {
+        studentId,
+        periodId: targetPeriodId,
+        divisionId,
+        workStart,
+        workEnd,
+        status,
+      },
+    });
   } else {
-    await prisma.placement.create({ data });
+    const period = await prisma.pklPeriod.create({
+      data: {
+        name: periodName,
+        startDate,
+        endDate,
+      },
+    });
+
+    await prisma.placement.create({
+      data: {
+        studentId,
+        periodId: period.id,
+        divisionId,
+        workStart,
+        workEnd,
+        status,
+      },
+    });
   }
 
   revalidatePath("/hrd/penempatan");
@@ -59,18 +117,36 @@ export async function savePlacement(
 export async function deletePlacement(id: string): Promise<ActionResult> {
   await requireAdminOrHrd();
 
-  const [attendances, logs] = await Promise.all([
-    prisma.attendance.count({ where: { placementId: id } }),
-    prisma.activityLog.count({ where: { placementId: id } }),
-  ]);
-  if (attendances > 0 || logs > 0) {
+  const placement = await prisma.placement.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          attendances: true,
+          logs: true,
+        },
+      },
+    },
+  });
+  if (!placement) {
+    return { ok: false, message: "Penempatan tidak ditemukan." };
+  }
+
+  if (placement._count.attendances > 0 || placement._count.logs > 0) {
     return {
       ok: false,
       message: "Penempatan tidak bisa dihapus: sudah memiliki absensi atau log aktivitas.",
     };
   }
 
+  const periodId = placement.periodId;
   await prisma.placement.delete({ where: { id } });
+
+  const count = await prisma.placement.count({ where: { periodId } });
+  if (count === 0) {
+    await prisma.pklPeriod.delete({ where: { id: periodId } }).catch(() => {});
+  }
+
   revalidatePath("/hrd/penempatan");
   return { ok: true, message: "Penempatan dihapus." };
 }

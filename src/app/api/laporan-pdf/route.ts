@@ -7,7 +7,6 @@ import { requireUser } from "@/lib/permissions";
 import {
   formatWibDate,
   formatWibLongDate,
-  formatWibTime,
   getWibDateParts,
 } from "@/lib/time";
 import { ReportDocument } from "@/lib/pdf/report-document";
@@ -153,13 +152,6 @@ export async function GET(req: NextRequest) {
   ]);
 
   // ── Kelompokkan kehadiran & jurnal per tanggal ─────────────────────────
-  const statusLabels: Record<string, string> = {
-    HADIR: "Hadir",
-    TERLAMBAT: "Terlambat",
-    IZIN: "Izin",
-    SAKIT: "Sakit",
-  };
-
   const dateKey = (date: Date) => date.toISOString().slice(0, 10);
 
   const attendanceByDate = new Map<
@@ -182,33 +174,19 @@ export async function GET(req: NextRequest) {
     ...new Set([...attendanceByDate.keys(), ...logsByDate.keys()]),
   ].sort();
 
+  // ── Jurnal aktivitas (flat list sesuai format tabel simple) ───────────
   let logNo = 0;
-  const days = dateKeys.map((key) => {
-    const att = attendanceByDate.get(key);
-    const dayLogs = (logsByDate.get(key) ?? []).map((l) => ({
-      no: ++logNo,
-      startTime: l.startTime,
-      endTime: l.endTime,
-      taskFrom: l.taskFrom,
-      description: l.description,
-      output: l.output ?? "",
-      fileNames: l.attachments.map((a) => a.fileName).join(", "),
-    }));
-
-    return {
-      date: formatWibDate(new Date(`${key}T00:00:00.000Z`)),
-      status: att ? (statusLabels[att.status] ?? att.status) : "Hadir",
-      checkIn: att?.checkIn ? formatWibTime(att.checkIn) : "",
-      checkOut: att?.checkOut ? formatWibTime(att.checkOut) : "",
-      note: att
-        ? [att.note, att.earlyLeave ? "Pulang lebih awal" : ""]
-            .filter(Boolean)
-            .join(" · ")
-        : "Berdasarkan jurnal aktivitas",
-      journalOnly: !att,
-      logs: dayLogs,
-    };
-  });
+  const flatLogs = logs.map((l) => ({
+    no: ++logNo,
+    dateKey: dateKey(l.logDate),
+    date: formatWibDate(l.logDate),
+    startTime: l.startTime || "",
+    endTime: l.endTime || "",
+    taskFrom: l.taskFrom || "-",
+    description: l.description,
+    output: l.output || "-",
+    hasAttachment: l.attachments.length > 0,
+  }));
 
   // ── Rekap kehadiran ────────────────────────────────────────────────────
   // Hari yang hanya punya jurnal (mis. hasil impor Excel) tetap dihitung hadir.
@@ -273,7 +251,6 @@ export async function GET(req: NextRequest) {
     className: student.className ?? "",
     phone: student.phone ?? "",
     divisionName: placement?.division?.name ?? "-",
-    periodName: placement?.period?.name ?? "-",
     periodRange,
     workSchedule: placement
       ? `${placement.workStart} – ${placement.workEnd} WIB`
@@ -281,7 +258,7 @@ export async function GET(req: NextRequest) {
     reportDateRange,
     picMentorName: picMentor,
     attendance,
-    days,
+    logs: flatLogs,
     logCount: logs.length,
     printedAt,
     printedAtLong,

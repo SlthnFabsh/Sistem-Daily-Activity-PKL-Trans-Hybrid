@@ -154,17 +154,11 @@ const s = StyleSheet.create({
     textAlign: "center",
     color: INK,
   },
-  subtitle: {
-    fontSize: 8.5,
-    color: MUTED,
-    textAlign: "center",
-    marginTop: 4,
-  },
   titleRule: {
     width: 46,
     height: 2,
     backgroundColor: ACCENT,
-    marginTop: 9,
+    marginTop: 6,
   },
 
   // ── Judul bagian ──
@@ -269,49 +263,6 @@ const s = StyleSheet.create({
     marginTop: 3,
   },
 
-  // ── Grup per tanggal ──
-  dayGroup: {
-    marginTop: 9,
-  },
-  dayHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: SOFT,
-    borderTopWidth: 0.8,
-    borderBottomWidth: 0.8,
-    borderColor: BORDER,
-    paddingVertical: 4,
-    paddingHorizontal: 5,
-  },
-  dayDate: {
-    width: "52%",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8.6,
-    color: INK,
-  },
-  dayMeta: {
-    width: "48%",
-    fontSize: 7.6,
-    color: INK,
-    textAlign: "right",
-  },
-  dayMetaStrong: {
-    fontFamily: "Helvetica-Bold",
-  },
-  dayMetaMuted: {
-    color: MUTED,
-  },
-  dayEmpty: {
-    fontSize: 7.6,
-    color: MUTED,
-    fontStyle: "italic",
-    paddingVertical: 4,
-    paddingHorizontal: 5,
-    borderBottomWidth: 0.5,
-    borderBottomColor: BORDER,
-  },
-
   // ── Tabel jurnal ──
   table: {
     borderBottomWidth: 0.8,
@@ -319,43 +270,29 @@ const s = StyleSheet.create({
   },
   thRow: {
     flexDirection: "row",
-    backgroundColor: SOFT,
+    backgroundColor: "#EFF6FF",
+    borderTopWidth: 0.8,
     borderBottomWidth: 0.8,
-    borderBottomColor: BORDER,
+    borderColor: "#BFDBFE",
   },
   tr: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: BORDER,
   },
-  trLast: {
-    flexDirection: "row",
-  },
   th: {
     fontFamily: "Helvetica-Bold",
-    fontSize: 7,
-    letterSpacing: 0.25,
-    textTransform: "uppercase",
-    color: INK,
-    paddingVertical: 4,
+    fontSize: 7.5,
+    color: LINK,
+    paddingVertical: 4.5,
     paddingHorizontal: 4,
   },
   td: {
-    fontSize: 7.6,
+    fontSize: 7.5,
     color: INK,
-    paddingVertical: 3.6,
+    paddingVertical: 4,
     paddingHorizontal: 4,
-  },
-  tdMuted: {
-    fontSize: 7.6,
-    color: MUTED,
-    paddingVertical: 3.6,
-    paddingHorizontal: 4,
-  },
-  tdSub: {
-    fontSize: 7,
-    color: MUTED,
-    marginTop: 1,
+    lineHeight: 1.35,
   },
   emptyBox: {
     borderWidth: 0.8,
@@ -367,13 +304,21 @@ const s = StyleSheet.create({
     color: MUTED,
     fontStyle: "italic",
   },
+  attachmentNote: {
+    fontSize: 7,
+    color: MUTED,
+    fontStyle: "italic",
+    marginTop: 4,
+  },
 
-  // Lebar kolom jurnal (tanpa kolom tanggal — tanggal ada di header grup)
-  cNo: { width: 24 },
-  cTime: { width: 56 },
+  // Lebar kolom tabel
+  cNo: { width: 22 },
+  cDate: { width: 80 },
+  cTime: { width: 54 },
+  cTask: { width: 58 },
   cDesc: { flex: 1 },
-  cOutput: { width: 100 },
-  cFiles: { width: 76 },
+  cOutput: { width: 56 },
+  cFiles: { width: 62 },
 
   // ── Penutup & tanda tangan ──
   closing: {
@@ -466,24 +411,16 @@ export type PdfAttendanceSummary = {
   total: number;
 };
 
-export type PdfLogRow = {
+export type PdfFlatLog = {
   no: number;
+  dateKey: string;
+  date: string;
   startTime: string;
   endTime: string;
   taskFrom: string;
   description: string;
   output: string;
-  fileNames: string; // nama file dipisah koma
-};
-
-export type PdfDayEntry = {
-  date: string;
-  status: string;
-  checkIn: string;
-  checkOut: string;
-  note: string;
-  journalOnly: boolean;
-  logs: PdfLogRow[];
+  hasAttachment: boolean;
 };
 
 export type PdfReportData = {
@@ -496,7 +433,6 @@ export type PdfReportData = {
   phone: string;
   // Penempatan
   divisionName: string;
-  periodName: string;
   periodRange: string;
   workSchedule: string;
   // Filter laporan
@@ -505,7 +441,7 @@ export type PdfReportData = {
   picMentorName: string;
   // Data
   attendance: PdfAttendanceSummary;
-  days: PdfDayEntry[];
+  logs: PdfFlatLog[];
   logCount: number;
   // Tanggal cetak
   printedAt: string; // dd/mm/yyyy
@@ -538,98 +474,78 @@ function InfoRow({
   );
 }
 
-function JournalHeader() {
+function JournalTable({ logs }: { logs: PdfFlatLog[] }) {
   return (
-    <View style={s.thRow}>
-      <View style={s.cNo}>
-        <Text style={s.th}>No</Text>
-      </View>
-      <View style={s.cTime}>
-        <Text style={s.th}>Jam</Text>
-      </View>
-      <View style={s.cDesc}>
-        <Text style={s.th}>Uraian Kegiatan</Text>
-      </View>
-      <View style={s.cOutput}>
-        <Text style={s.th}>Hasil</Text>
-      </View>
-      <View style={s.cFiles}>
-        <Text style={s.th}>Lampiran</Text>
-      </View>
-    </View>
-  );
-}
-
-function JournalRow({ row, last }: { row: PdfLogRow; last: boolean }) {
-  return (
-    <View style={last ? s.trLast : s.tr} wrap={false}>
-      <View style={s.cNo}>
-        <Text style={s.td}>{row.no}</Text>
-      </View>
-      <View style={s.cTime}>
-        <Text style={s.td}>
-          {row.startTime}–{row.endTime}
-        </Text>
-      </View>
-      <View style={s.cDesc}>
-        <Text style={s.td}>{row.description}</Text>
-        {row.taskFrom ? (
-          <Text style={s.tdSub}>Pemberi tugas: {row.taskFrom}</Text>
-        ) : null}
-      </View>
-      <View style={s.cOutput}>
-        {row.output ? (
-          <Text style={s.td}>{row.output}</Text>
-        ) : (
-          <Text style={s.tdMuted}>–</Text>
-        )}
-      </View>
-      <View style={s.cFiles}>
-        {row.fileNames ? (
-          <Text style={s.td}>{row.fileNames}</Text>
-        ) : (
-          <Text style={s.tdMuted}>–</Text>
-        )}
-      </View>
-    </View>
-  );
-}
-
-function DayGroup({ day }: { day: PdfDayEntry }) {
-  const timeText =
-    day.checkIn || day.checkOut
-      ? `${day.checkIn || "–"} – ${day.checkOut || "–"}`
-      : "";
-
-  return (
-    <View style={s.dayGroup} wrap={false}>
-      <View style={s.dayHeader}>
-        <Text style={s.dayDate}>{day.date}</Text>
-        <Text style={s.dayMeta}>
-          <Text style={s.dayMetaStrong}>{day.status}</Text>
-          {timeText ? (
-            <Text style={s.dayMetaMuted}>{"  ·  " + timeText}</Text>
-          ) : null}
-          {day.note ? (
-            <Text style={s.dayMetaMuted}>{"  ·  " + day.note}</Text>
-          ) : null}
-        </Text>
-      </View>
-
-      {day.logs.length === 0 ? (
-        <Text style={s.dayEmpty}>Tidak ada jurnal aktivitas.</Text>
-      ) : (
-        <View style={s.table}>
-          <JournalHeader />
-          {day.logs.map((log, i) => (
-            <JournalRow
-              key={log.no}
-              row={log}
-              last={i === day.logs.length - 1}
-            />
-          ))}
+    <View style={s.table}>
+      <View style={s.thRow} fixed>
+        <View style={s.cNo}>
+          <Text style={s.th}>No.</Text>
         </View>
-      )}
+        <View style={s.cDate}>
+          <Text style={s.th}>Tanggal</Text>
+        </View>
+        <View style={s.cTime}>
+          <Text style={s.th}>Jam</Text>
+        </View>
+        <View style={s.cTask}>
+          <Text style={s.th}>Task dari</Text>
+        </View>
+        <View style={s.cDesc}>
+          <Text style={s.th}>Uraian Kegiatan</Text>
+        </View>
+        <View style={s.cOutput}>
+          <Text style={s.th}>Hasil</Text>
+        </View>
+        <View style={s.cFiles}>
+          <Text style={s.th}>Lampiran</Text>
+        </View>
+      </View>
+
+      {logs.map((log, i) => {
+        const isSameDate = i > 0 && log.dateKey === logs[i - 1].dateKey;
+        const displayDate = isSameDate ? "" : log.date;
+
+        const timeStr =
+          log.startTime && log.endTime
+            ? `${log.startTime}—${log.endTime}`
+            : log.startTime || log.endTime || "";
+        const prevTimeStr =
+          i > 0
+            ? logs[i - 1].startTime && logs[i - 1].endTime
+              ? `${logs[i - 1].startTime}—${logs[i - 1].endTime}`
+              : logs[i - 1].startTime || logs[i - 1].endTime || ""
+            : "";
+        const isSameTime = isSameDate && timeStr !== "" && timeStr === prevTimeStr;
+        const displayTime = isSameTime || (isSameDate && !timeStr) ? "" : timeStr;
+
+        return (
+          <View key={log.no} style={s.tr} wrap={false}>
+            <View style={s.cNo}>
+              <Text style={s.td}>{log.no}</Text>
+            </View>
+            <View style={s.cDate}>
+              <Text style={s.td}>{displayDate}</Text>
+            </View>
+            <View style={s.cTime}>
+              <Text style={s.td}>{displayTime}</Text>
+            </View>
+            <View style={s.cTask}>
+              <Text style={s.td}>{log.taskFrom || "-"}</Text>
+            </View>
+            <View style={s.cDesc}>
+              <Text style={s.td}>{log.description}</Text>
+            </View>
+            <View style={s.cOutput}>
+              <Text style={s.td}>{log.output || "-"}</Text>
+            </View>
+            <View style={s.cFiles}>
+              <Text style={s.td}>
+                {log.hasAttachment ? "Terlampir" : "-"}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -711,9 +627,6 @@ export function ReportDocument({
         {/* ── Judul ── */}
         <View style={s.titleBlock}>
           <Text style={s.title}>{PDF_REPORT_TITLE.toUpperCase()}</Text>
-          <Text style={s.subtitle}>
-            {data.periodName} · {data.periodRange}
-          </Text>
           <View style={s.titleRule} />
         </View>
 
@@ -730,8 +643,7 @@ export function ReportDocument({
           </View>
           <View style={s.infoColumnRight}>
             <InfoRow label="Divisi" value={data.divisionName} strong />
-            <InfoRow label="Periode PKL" value={data.periodName} />
-            <InfoRow label="Rentang Periode" value={data.periodRange} />
+            <InfoRow label="Periode PKL" value={data.periodRange} />
             <InfoRow label="Jam Kerja" value={data.workSchedule} />
             <InfoRow label="Rentang Laporan" value={data.reportDateRange} />
           </View>
@@ -774,20 +686,22 @@ export function ReportDocument({
           data absensi.
         </Text>
 
-        {/* ── C. Rincian kehadiran & jurnal per tanggal ── */}
+        {/* ── C. Rincian jurnal aktivitas ── */}
         <Text style={s.sectionTitle} minPresenceAhead={90}>
-          C. Rincian Kehadiran &amp; Jurnal Aktivitas ({data.logCount} kegiatan)
+          C. Jurnal Aktivitas PKL ({data.logCount} kegiatan)
         </Text>
-        {data.days.length === 0 ? (
+        {data.logs.length === 0 ? (
           <View style={s.emptyBox}>
             <Text style={s.emptyText}>
-              Belum ada data kehadiran maupun jurnal aktivitas pada rentang
-              tanggal ini.
+              Belum ada data jurnal aktivitas pada rentang tanggal ini.
             </Text>
           </View>
         ) : (
-          data.days.map((day) => <DayGroup key={day.date} day={day} />)
+          <JournalTable logs={data.logs} />
         )}
+        <Text style={s.attachmentNote}>
+          (Lampiran terlampir di website https://absensi-pkl-thc.vercel.app/)
+        </Text>
 
         {/* ── Penutup & tanda tangan ── */}
         <View wrap={false}>

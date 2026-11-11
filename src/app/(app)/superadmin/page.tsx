@@ -57,10 +57,6 @@ export default async function SuperadminIndexPage() {
           <h3 className="text-sm font-semibold text-text">Divisi</h3>
           <p className="text-xs text-text-muted">Kelola divisi tempat siswa PKL.</p>
         </Link>
-        <Link href="/hrd/periode" className="rounded-lg border border-border p-4 hover:bg-primary-soft">
-          <h3 className="text-sm font-semibold text-text">Periode PKL</h3>
-          <p className="text-xs text-text-muted">Kelola periode pelaksanaan PKL.</p>
-        </Link>
         <Link href="/hrd/penempatan" className="rounded-lg border border-border p-4 hover:bg-primary-soft">
           <h3 className="text-sm font-semibold text-text">Penempatan</h3>
           <p className="text-xs text-text-muted">Tempatkan siswa ke periode & divisi.</p>
@@ -72,11 +68,10 @@ export default async function SuperadminIndexPage() {
       </div>
 
       <Card className="p-4">
-        <h3 className="text-sm font-semibold text-text">Ringkasan divisi & periode</h3>
+        <h3 className="text-sm font-semibold text-text">Ringkasan divisi & penempatan</h3>
         <div className="mt-3 flex flex-wrap gap-3 text-sm text-text-muted">
           <span>Divisi: {divisions}</span>
-          <span>Periode: {periods}</span>
-          <span>Penempatan aktif: {placements}</span>
+          <span>Penempatan: {placements}</span>
         </div>
       </Card>
     </>

@@ -128,14 +128,11 @@ export default async function StudentProfilePage() {
                 </span>
               </div>
               <p className="mt-1.5 text-sm font-semibold text-text">
-                {activePlacement.period.name}
-              </p>
-              <p className="mt-0.5 text-xs text-text-muted">
                 {new Date(activePlacement.period.startDate).toLocaleDateString(
                   "id-ID",
                   { dateStyle: "long" }
                 )}{" "}
-                –{" "}
+                s.d.{" "}
                 {new Date(activePlacement.period.endDate).toLocaleDateString(
                   "id-ID",
                   { dateStyle: "long" }

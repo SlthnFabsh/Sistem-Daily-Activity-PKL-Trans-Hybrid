@@ -20,7 +20,8 @@ export type PlacementView = {
   studentId: string;
   studentName: string;
   periodId: string;
-  periodName: string;
+  periodStartDate: string;
+  periodEndDate: string;
   divisionId: string;
   divisionName: string;
   workStart: string;
@@ -33,12 +34,10 @@ export type Option = { id: string; label: string };
 export function PlacementManager({
   placements,
   students,
-  periods,
   divisions,
 }: {
   placements: PlacementView[];
   students: Option[];
-  periods: Option[];
   divisions: Option[];
 }) {
   const router = useRouter();
@@ -126,46 +125,55 @@ export function PlacementManager({
                 ))}
               </Select>
               <Select
-                name="periodId"
-                label="Periode PKL"
-                defaultValue={editing?.periodId ?? ""}
-                error={state.fieldErrors?.periodId?.[0]}
+                name="divisionId"
+                label="Divisi"
+                defaultValue={editing?.divisionId ?? ""}
+                error={state.fieldErrors?.divisionId?.[0]}
               >
-                <option value="">Pilih periode</option>
-                {periods.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
+                <option value="">Pilih divisi</option>
+                {divisions.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label}
                   </option>
                 ))}
               </Select>
             </div>
-            <Select
-              name="divisionId"
-              label="Divisi"
-              defaultValue={editing?.divisionId ?? ""}
-              error={state.fieldErrors?.divisionId?.[0]}
-            >
-              <option value="">Pilih divisi</option>
-              {divisions.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label}
-                </option>
-              ))}
-            </Select>
+
+            <div className="space-y-3 rounded-xl border border-border bg-surface-muted/30 p-3.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Periode PKL
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  name="periodStartDate"
+                  label="Tanggal mulai PKL"
+                  type="date"
+                  defaultValue={editing?.periodStartDate ?? ""}
+                  error={state.fieldErrors?.periodStartDate?.[0]}
+                />
+                <Input
+                  name="periodEndDate"
+                  label="Tanggal selesai PKL"
+                  type="date"
+                  defaultValue={editing?.periodEndDate ?? ""}
+                  error={state.fieldErrors?.periodEndDate?.[0]}
+                />
+              </div>
+            </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
               <Input
                 name="workStart"
                 label="Jam masuk"
                 type="time"
-                defaultValue={editing?.workStart ?? ""}
+                defaultValue={editing?.workStart ?? "08:00"}
                 error={state.fieldErrors?.workStart?.[0]}
               />
               <Input
                 name="workEnd"
                 label="Jam pulang"
                 type="time"
-                defaultValue={editing?.workEnd ?? ""}
+                defaultValue={editing?.workEnd ?? "17:00"}
                 error={state.fieldErrors?.workEnd?.[0]}
               />
               <Select
@@ -213,7 +221,9 @@ export function PlacementManager({
                     <td className="px-4 py-2.5 font-medium text-text">
                       {p.studentName}
                     </td>
-                    <td className="px-4 py-2.5 text-text-muted">{p.periodName}</td>
+                    <td className="px-4 py-2.5 text-text-muted">
+                      {p.periodStartDate} s.d. {p.periodEndDate}
+                    </td>
                     <td className="px-4 py-2.5 text-text">{p.divisionName}</td>
                     <td className="px-4 py-2.5 text-text-muted">
                       {p.workStart} - {p.workEnd}
@@ -252,7 +262,9 @@ export function PlacementManager({
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-text">{p.studentName}</p>
-                    <p className="text-xs text-text-muted">{p.periodName}</p>
+                    <p className="text-xs text-text-muted">
+                      {p.periodStartDate} s.d. {p.periodEndDate}
+                    </p>
                     <p className="mt-1 text-xs text-text-muted">
                       {p.divisionName} · {p.workStart}–{p.workEnd}
                     </p>

@@ -482,11 +482,12 @@ export function LogForm({
           <div className="grid grid-cols-1 gap-3">
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-text">
-                Hasil (opsional)
+                Hasil <span className="text-danger">*</span>
               </span>
               <textarea
                 name="output"
                 rows={2}
+                required
                 placeholder="Hasil dari kegiatan..."
                 className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-text outline-none placeholder:text-text-muted/60 focus:border-primary"
                 defaultValue={defaultValues?.output ?? ""}

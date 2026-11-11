@@ -82,13 +82,23 @@ export const leaveSchema = z.object({
 export const placementSchema = z
   .object({
     studentId: z.string().min(1, "Siswa wajib dipilih."),
-    periodId: z.string().min(1, "Periode wajib dipilih."),
+    periodStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal mulai PKL tidak valid."),
+    periodEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal selesai PKL tidak valid."),
     divisionId: z.string().min(1, "Divisi wajib dipilih."),
     workStart: z.string().regex(timeRegex, "Format jam harus HH:MM (mis. 08:00)."),
     workEnd: z.string().regex(timeRegex, "Format jam harus HH:MM (mis. 16:00)."),
     status: z.enum(["ACTIVE", "FINISHED"]),
   })
   .superRefine((value, ctx) => {
+    const start = new Date(`${value.periodStartDate}T00:00:00.000Z`);
+    const end = new Date(`${value.periodEndDate}T00:00:00.000Z`);
+    if (end < start) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["periodEndDate"],
+        message: "Tanggal selesai PKL tidak boleh sebelum tanggal mulai.",
+      });
+    }
     if (value.workEnd <= value.workStart) {
       ctx.addIssue({
         code: "custom",
@@ -114,7 +124,11 @@ export const activityLogSchema = z
       .trim()
       .min(5, "Uraian kegiatan wajib diisi (minimal 5 karakter).")
       .max(2000, "Uraian maksimal 2000 karakter."),
-    output: optionalText(1000, "Hasil"),
+    output: z
+      .string()
+      .trim()
+      .min(1, "Hasil wajib diisi.")
+      .max(1000, "Hasil maksimal 1000 karakter."),
     obstacle: optionalText(1000, "Hambatan"),
   })
   .superRefine((value, ctx) => {
