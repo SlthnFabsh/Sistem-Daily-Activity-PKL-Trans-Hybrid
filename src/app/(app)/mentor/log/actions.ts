@@ -78,7 +78,9 @@ export async function approveAllLogsForStudent(
   }
 
   let approverId = user.id;
-  let wherePlacement: { studentId: string; divisionId?: string } = { studentId };
+  const wherePlacement: { studentId: string; divisionId?: string } = {
+    studentId,
+  };
 
   if (user.role === "MENTOR") {
     const mentor = await prisma.mentor.findUnique({
@@ -121,7 +123,7 @@ export async function approveAllPendingDivisionLogs(
   const user = await requireRole(["MENTOR", "HRD", "SUPERADMIN"]);
 
   let approverId = user.id;
-  let wherePlacement: { divisionId?: string } = {};
+  const wherePlacement: { divisionId?: string } = {};
 
   if (user.role === "MENTOR") {
     const mentor = await prisma.mentor.findUnique({

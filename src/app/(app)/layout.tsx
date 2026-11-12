@@ -11,14 +11,14 @@ export default async function AppLayout({
 }: {
   children: ReactNode;
 }) {
-  const user = await requireUser();
+  const user = await requireUser({ allowPasswordChange: true });
 
   // Siswa wajib melengkapi biodata sebelum memakai fitur lain.
   // Pengecekan dilakukan langsung ke database (bukan dari token JWT) agar
   // status selalu akurat dan tidak memicu redirect loop.
   // Halaman /student/profile/setup berada di luar group (app) sehingga
   // tidak ikut kena redirect ini.
-  if (user.role === "STUDENT") {
+  if (user.role === "STUDENT" && !user.mustChangePassword) {
     const student = await prisma.student.findUnique({
       where: { userId: user.id },
       select: { profileCompleted: true },

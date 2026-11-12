@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { compare, hash } from "bcryptjs";
+import { signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/permissions";
 import { generateResetToken } from "@/lib/permissions";
@@ -14,7 +15,7 @@ export async function changePassword(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  const user = await requireUser();
+  const user = await requireUser({ allowPasswordChange: true });
 
   const parsed = changePasswordSchema.safeParse({
     currentPassword: formData.get("currentPassword"),
@@ -43,7 +44,7 @@ export async function changePassword(
   const passwordHash = await hash(newPassword, SALT_ROUNDS);
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash },
+    data: { passwordHash, mustChangePassword: false },
   });
 
   // Invalidate semua token reset yang belum terpakai milik user ini
@@ -51,6 +52,10 @@ export async function changePassword(
     where: { userId: user.id, status: "PENDING" },
     data: { status: "EXPIRED" },
   });
+
+  if (user.mustChangePassword) {
+    await signOut({ redirectTo: "/login?passwordChanged=1" });
+  }
 
   revalidatePath("/settings/password");
   return { ok: true, message: "Password berhasil diubah." };

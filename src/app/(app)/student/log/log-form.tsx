@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useActionForm } from "@/lib/use-action-form";
 import imageCompression from "browser-image-compression";
@@ -124,7 +124,7 @@ export function LogForm({
     }
   }
 
-  async function flushAutosave() {
+  const flushAutosave = useCallback(async function flushAutosave() {
     if (!canAutosave || !logId) return;
     const form = formRef.current;
     if (!form) return;
@@ -161,7 +161,7 @@ export function LogForm({
         void flushAutosave();
       }
     }
-  }
+  }, [canAutosave, logId, storageKey]);
 
   function scheduleAutosave() {
     if (!canAutosave) return;
@@ -211,14 +211,13 @@ export function LogForm({
         if (!el || el.disabled) continue;
         el.value = values[name] ?? "";
       }
-      setAutosaveState("idle");
       // Simpan ulang ke server karena snapshot ini bisa jadi lebih baru
       // daripada data yang sempat tersimpan sebelum refresh.
-      if (canAutosave) void flushAutosave();
+      if (canAutosave) queueMicrotask(() => void flushAutosave());
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [storageKey, canAutosave]);
+  }, [storageKey, canAutosave, flushAutosave]);
 
   // Kirim sisa ketikan saat halaman ditutup/dipindah ke background.
   useEffect(() => {

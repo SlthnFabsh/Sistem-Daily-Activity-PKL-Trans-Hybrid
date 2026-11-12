@@ -12,31 +12,37 @@ import type { ActionResult } from "@/lib/action-result";
 
 const initialState: ActionResult = { ok: false };
 
-export function PasswordForm() {
+export function PasswordForm({ forceChange = false }: { forceChange?: boolean }) {
   return (
     <div className="space-y-6 max-w-lg">
       <Card className="p-4">
-        <h2 className="text-sm font-semibold text-text">Ubah password sendiri</h2>
+        <h2 className="text-sm font-semibold text-text">
+          {forceChange ? "Ganti password sementara" : "Ubah password sendiri"}
+        </h2>
         <p className="text-xs text-text-muted">
-          Masukkan password lama dan password baru. Semua role bisa mengubah passwordnya sendiri.
+          {forceChange
+            ? "Demi keamanan, ubah password sementara dari HRD sebelum menggunakan sistem."
+            : "Masukkan password lama dan password baru. Semua role bisa mengubah passwordnya sendiri."}
         </p>
-        <ChangePasswordInner />
+        <ChangePasswordInner forceChange={forceChange} />
       </Card>
 
-      <Card className="p-4">
-        <h2 className="text-sm font-semibold text-text">Lupa password?</h2>
-        <p className="text-xs text-text-muted">
-          Jika Anda lupa password, ajukan permintaan reset. Superadmin akan menyetel password baru untuk Anda.
-        </p>
-        <RequestResetInner />
-      </Card>
+      {!forceChange && (
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-text">Lupa password?</h2>
+          <p className="text-xs text-text-muted">
+            Jika Anda lupa password, ajukan permintaan reset. Superadmin akan menyetel password baru untuk Anda.
+          </p>
+          <RequestResetInner />
+        </Card>
+      )}
     </div>
   );
 }
 
-function ChangePasswordInner() {
+function ChangePasswordInner({ forceChange }: { forceChange: boolean }) {
   const [state, formAction, pending] = useActionForm(changePassword, initialState);
-  const { notice, error, setNotice, setError, dismiss } = useActionFeedback(state);
+  const { notice, error } = useActionFeedback(state);
 
   return (
     <>
@@ -66,7 +72,9 @@ function ChangePasswordInner() {
           {pending ? "Menyimpan..." : "Simpan password baru"}
         </Button>
         <p className="text-xs text-text-muted">
-          Setelah disimpan, sesi Anda tetap aktif. Login ulang bila perlu.
+          {forceChange
+            ? "Setelah password diganti, silakan masuk kembali."
+            : "Setelah disimpan, sesi Anda tetap aktif. Login ulang bila perlu."}
         </p>
       </form>
       {notice && <Notice>{notice}</Notice>}
@@ -77,7 +85,7 @@ function ChangePasswordInner() {
 
 function RequestResetInner() {
   const [state, formAction, pending] = useActionForm(requestPasswordReset, initialState);
-  const { notice, error, setNotice, setError, dismiss } = useActionFeedback(state);
+  const { notice, error } = useActionFeedback(state);
   const [email, setEmail] = useState("");
 
   return (

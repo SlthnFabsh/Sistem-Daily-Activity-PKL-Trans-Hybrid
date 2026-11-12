@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { StudentManager, type StudentView } from "../../hrd/siswa/student-manager";
-import { saveStudent, deleteStudent, resetStudentPassword, importStudents } from "./actions";
+import { saveStudent, deleteStudent, importStudents } from "./actions";
 
 export default async function SuperadminSiswaPage() {
   await requireRole("SUPERADMIN");
@@ -34,7 +34,6 @@ export default async function SuperadminSiswaPage() {
         studentActions={{
           save: saveStudent,
           delete: deleteStudent,
-          resetPassword: resetStudentPassword,
           import: importStudents,
         }}
       />
