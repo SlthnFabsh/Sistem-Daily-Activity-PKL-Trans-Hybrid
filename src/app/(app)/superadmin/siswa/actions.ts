@@ -6,7 +6,7 @@ import { read, utils, type WorkBook, type WorkSheet } from "xlsx";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/permissions";
 import { studentSchema, importRowSchema } from "@/lib/validations";
-import { TEMP_PASSWORD } from "@/lib/constants";
+import { HRD_STUDENT_INITIAL_PASSWORD, TEMP_PASSWORD } from "@/lib/constants";
 import {
   isUniqueViolation,
   toFieldErrors,
@@ -26,7 +26,7 @@ export async function saveStudent(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole(["SUPERADMIN", "HRD"]);
+  const actor = await requireRole(["SUPERADMIN", "HRD"]);
 
   const id = formData.get("id")?.toString().trim() ?? "";
   // Field biodata bersifat opsional dan tidak selalu ada di form (mis. form HRD
@@ -71,21 +71,26 @@ export async function saveStudent(
         }),
       ]);
     } else {
-      const passwordHash = await hash(TEMP_PASSWORD, SALT_ROUNDS);
-      await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: { name, email, passwordHash, role: "STUDENT" },
-        });
-        await tx.student.create({
-          data: {
-            userId: user.id,
-            nis,
-            schoolName,
-            major,
-            className,
-            phone,
+      const initialPassword =
+        actor.role === "HRD" ? HRD_STUDENT_INITIAL_PASSWORD : TEMP_PASSWORD;
+      const passwordHash = await hash(initialPassword, SALT_ROUNDS);
+      await prisma.user.create({
+        data: {
+          name,
+          email,
+          passwordHash,
+          role: "STUDENT",
+          mustChangePassword: actor.role === "HRD",
+          student: {
+            create: {
+              nis,
+              schoolName,
+              major,
+              className,
+              phone,
+            },
           },
-        });
+        },
       });
     }
   } catch (error) {
@@ -101,7 +106,9 @@ export async function saveStudent(
     ok: true,
     message: id
       ? "Siswa diperbarui."
-      : `Siswa dibuat. Password sementara: ${TEMP_PASSWORD}`,
+      : actor.role === "HRD"
+        ? `Siswa dibuat. Password sementara: ${HRD_STUDENT_INITIAL_PASSWORD}. Siswa wajib menggantinya saat login pertama.`
+        : `Siswa dibuat. Password sementara: ${TEMP_PASSWORD}`,
   };
 }
 
@@ -181,29 +188,6 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
   };
 }
 
-export async function resetStudentPassword(id: string): Promise<ActionResult> {
-  await requireRole(["SUPERADMIN", "HRD"]);
-
-  const student = await prisma.student.findUnique({
-    where: { id },
-    include: { user: { select: { name: true } } },
-  });
-  if (!student) return { ok: false, message: "Siswa tidak ditemukan." };
-
-  const passwordHash = await hash(TEMP_PASSWORD, SALT_ROUNDS);
-  await prisma.user.update({
-    where: { id: student.userId },
-    data: { passwordHash },
-  });
-
-  revalidatePath("/superadmin/siswa");
-  revalidatePath("/hrd/siswa");
-  return {
-    ok: true,
-    message: `Password ${student.user.name} direset menjadi: ${TEMP_PASSWORD}`,
-  };
-}
-
 function normalizeKey(key: string): string | undefined {
   const map: Record<string, string> = {
     nama: "name",
@@ -227,7 +211,11 @@ export async function importStudents(
   _prev: ImportResult,
   formData: FormData
 ): Promise<ImportResult> {
-  await requireRole(["SUPERADMIN", "HRD"]);
+  const actor = await requireRole(["SUPERADMIN", "HRD"]);
+  const createdByHrd = actor.role === "HRD";
+  const initialPassword = createdByHrd
+    ? HRD_STUDENT_INITIAL_PASSWORD
+    : TEMP_PASSWORD;
 
   const file = formData.get("file");
   if (!file || typeof (file as File).arrayBuffer !== "function") {
@@ -302,26 +290,24 @@ export async function importStudents(
     }
 
     try {
-      const passwordHash = await hash(TEMP_PASSWORD, SALT_ROUNDS);
-      await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            name: data.name,
-            email: data.email,
-            passwordHash,
-            role: "STUDENT",
+      const passwordHash = await hash(initialPassword, SALT_ROUNDS);
+      await prisma.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          passwordHash,
+          role: "STUDENT",
+          mustChangePassword: createdByHrd,
+          student: {
+            create: {
+              nis: data.nis,
+              schoolName: data.schoolName,
+              major: data.major,
+              className: data.className,
+              phone: data.phone,
+            },
           },
-        });
-        await tx.student.create({
-          data: {
-            userId: user.id,
-            nis: data.nis,
-            schoolName: data.schoolName,
-            major: data.major,
-            className: data.className,
-            phone: data.phone,
-          },
-        });
+        },
       });
       imported += 1;
       rows.push({ row: rowNumber, name: data.name, ok: true });
@@ -345,7 +331,10 @@ export async function importStudents(
     imported,
     failed,
     rows,
-    message: `Impor selesai: ${imported} berhasil, ${failed} gagal.`,
+    message:
+      createdByHrd && imported > 0
+        ? `Impor selesai: ${imported} berhasil, ${failed} gagal. Password sementara siswa: ${HRD_STUDENT_INITIAL_PASSWORD}; wajib diganti saat login pertama.`
+        : `Impor selesai: ${imported} berhasil, ${failed} gagal.`,
   };
 }
 

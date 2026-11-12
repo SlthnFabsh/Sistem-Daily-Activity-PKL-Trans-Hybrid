@@ -7,6 +7,7 @@ import { prisma } from "./db";
 export type SessionUser = {
   id: string;
   role: Role;
+  mustChangePassword: boolean;
   name?: string;
   email?: string;
 };
@@ -76,12 +77,18 @@ export async function isResetTokenValid(
 }
 
 /** Mengharuskan pengguna sudah login dan mengembalikan data sesinya. */
-export async function requireUser(): Promise<SessionUser> {
+export async function requireUser(
+  options: { allowPasswordChange?: boolean } = {}
+): Promise<SessionUser> {
   const session = await getCachedSession();
   if (!session?.user?.id || !session.user.role) redirect("/login");
+  if (session.user.mustChangePassword && !options.allowPasswordChange) {
+    redirect("/settings/password?required=1");
+  }
   return {
     id: session.user.id,
     role: session.user.role,
+    mustChangePassword: session.user.mustChangePassword,
     name: session.user.name ?? undefined,
     email: session.user.email ?? undefined,
   };

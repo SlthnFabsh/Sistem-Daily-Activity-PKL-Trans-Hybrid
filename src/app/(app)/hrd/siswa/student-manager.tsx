@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileUp, KeyRound, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Download, FileUp, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ActionResult, ImportResult } from "@/lib/action-result";
 import { useActionFeedback } from "@/lib/use-action-feedback";
 import { useActionForm } from "@/lib/use-action-form";
 import {
   saveStudent,
   deleteStudent,
-  resetStudentPassword,
   importStudents,
 } from "../../superadmin/siswa/actions";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,6 @@ const importInitialState: ImportResult = {
 export type StudentActions = {
   save: typeof saveStudent;
   delete: typeof deleteStudent;
-  resetPassword: typeof resetStudentPassword;
   import: typeof importStudents;
 };
 
@@ -55,7 +53,6 @@ export function StudentManager({
   const actions = studentActions ?? {
     save: saveStudent,
     delete: deleteStudent,
-    resetPassword: resetStudentPassword,
     import: importStudents,
   };
 
@@ -317,19 +314,6 @@ export function StudentManager({
                         </Button>
                         <Button
                           type="button"
-                          variant="secondary"
-                          className="px-3 py-1.5"
-                          onClick={() =>
-                            runAction(
-                              () => actions.resetPassword(s.id),
-                              "Reset password siswa ini?"
-                            )
-                          }
-                        >
-                          <KeyRound className="h-3.5 w-3.5" aria-hidden /> Reset sandi
-                        </Button>
-                        <Button
-                          type="button"
                           variant="danger"
                           className="px-3 py-1.5"
                           onClick={() =>
@@ -373,19 +357,6 @@ export function StudentManager({
                     onClick={() => openEdit(s.id)}
                   >
                     <Pencil className="h-3.5 w-3.5" aria-hidden /> Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="px-2.5 py-1.5"
-                    onClick={() =>
-                      runAction(
-                        () => actions.resetPassword(s.id),
-                        "Reset password siswa ini?"
-                      )
-                    }
-                  >
-                    <KeyRound className="h-3.5 w-3.5" aria-hidden />
                   </Button>
                   <Button
                     type="button"

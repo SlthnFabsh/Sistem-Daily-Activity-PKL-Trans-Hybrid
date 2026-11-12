@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
@@ -13,7 +14,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BrandLogo } from "@/components/brand/brand-logo";
 
 const FEATURES = [
   { icon: CalendarCheck, text: "Absensi masuk & pulang harian" },
@@ -35,6 +35,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const passwordChanged = searchParams.get("passwordChanged") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -85,7 +86,14 @@ function LoginForm() {
         </div>
 
         <div className="relative flex justify-center lg:justify-start">
-          <BrandLogo width={184} tile priority />
+          <Image
+            src="/logo-login.png"
+            alt="Trans Hybrid"
+            width={500}
+            height={235}
+            priority
+            className="h-auto w-[184px]"
+          />
         </div>
 
         <div className="relative mt-10 lg:mt-0">
@@ -125,7 +133,16 @@ function LoginForm() {
         <div className="animate-fade-up w-full max-w-sm">
           {/* Header brand ringkas untuk HP: form langsung terlihat tanpa scroll */}
           <div className="mb-6 flex flex-col items-center text-center lg:hidden">
-            <BrandLogo width={120} priority />
+            <div className="rounded-2xl bg-ink px-3 py-2.5">
+              <Image
+                src="/logo-login.png"
+                alt="Trans Hybrid"
+                width={500}
+                height={235}
+                priority
+                className="block h-auto w-[120px]"
+              />
+            </div>
             <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
               Your Trusted Partner
             </p>
@@ -140,6 +157,11 @@ function LoginForm() {
           <p className="mt-1 text-sm text-text-muted">
             Masuk untuk melanjutkan ke dashboard Anda.
           </p>
+          {passwordChanged && (
+            <p className="mt-3 rounded-xl border border-success/20 bg-success-soft px-3.5 py-2.5 text-sm font-medium text-success">
+              Password berhasil diganti. Silakan masuk kembali.
+            </p>
+          )}
 
           <form className="mt-8 space-y-4" onSubmit={onSubmit}>
             <Input

@@ -1,5 +1,7 @@
 // Konstanta bersama untuk seluruh aplikasi.
 
-// Password sementara yang dipakai untuk akun yang dibuat/diimport HRD dan akun
-// seed. HRD bisa mereset password lewat tombol "Reset password".
+// Password sementara untuk akun yang dibuat/diimpor dan akun seed.
 export const TEMP_PASSWORD = "Pkl@2026";
+
+// Password awal siswa yang dibuat oleh HRD; wajib diganti saat login pertama.
+export const HRD_STUDENT_INITIAL_PASSWORD = "PklTHC123";

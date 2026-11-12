@@ -22,6 +22,12 @@ export default auth((req: NextAuthRequest) => {
   const user = req.auth?.user;
   const role = user?.role;
 
+  if (user?.mustChangePassword && path !== "/settings/password") {
+    return NextResponse.redirect(
+      new URL("/settings/password?required=1", nextUrl)
+    );
+  }
+
   // Halaman masuk terbuka, tapi jika sudah login arahkan ke beranda role.
   if (path.startsWith("/login")) {
     if (role) {

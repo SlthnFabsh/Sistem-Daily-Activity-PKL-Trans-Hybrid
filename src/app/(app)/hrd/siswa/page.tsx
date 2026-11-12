@@ -5,7 +5,6 @@ import { StudentManager, type StudentView } from "./student-manager";
 import {
   saveStudent,
   deleteStudent,
-  resetStudentPassword,
   importStudents,
 } from "../../superadmin/siswa/actions";
 
@@ -33,14 +32,13 @@ export default async function HrdSiswaPage() {
     <>
       <PageHeader
         title="Siswa"
-        description="Kelola akun siswa, reset kata sandi, dan pantau status biodata profil."
+        description="Kelola akun siswa dan pantau status biodata profil."
       />
       <StudentManager
         students={view}
         studentActions={{
           save: saveStudent,
           delete: deleteStudent,
-          resetPassword: resetStudentPassword,
           import: importStudents,
         }}
       />

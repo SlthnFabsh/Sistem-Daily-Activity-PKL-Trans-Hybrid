@@ -34,24 +34,15 @@ export function MobileNav({
   userName: string;
   userRole: Role;
 }) {
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [openedPath, setOpenedPath] = useState<string | null>(null);
   const pathname = usePathname();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Tutup laci setiap kali pindah halaman.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+  const open = openedPath === pathname;
 
   // Tutup laci bila layar diperbesar sampai ukuran desktop.
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1024px)");
     const onChange = (event: MediaQueryListEvent) => {
-      if (event.matches) setOpen(false);
+      if (event.matches) setOpenedPath(null);
     };
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
@@ -61,7 +52,7 @@ export function MobileNav({
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") setOpenedPath(null);
     };
     document.addEventListener("keydown", onKey);
     const previousOverflow = document.body.style.overflow;
@@ -76,7 +67,7 @@ export function MobileNav({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenedPath(pathname)}
         aria-label="Buka menu navigasi"
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full border border-border bg-white py-1 pl-1 pr-2.5 transition-colors hover:border-primary/40 active:bg-primary-soft"
@@ -87,13 +78,13 @@ export function MobileNav({
         <Menu className="h-4 w-4 text-text-muted" aria-hidden />
       </button>
 
-      {mounted && open
+      {open
         ? createPortal(
             <div className="fixed inset-0 z-50 lg:hidden">
               <button
                 type="button"
                 aria-label="Tutup menu"
-                onClick={() => setOpen(false)}
+                onClick={() => setOpenedPath(null)}
                 className="absolute inset-0 bg-ink/50"
               />
 
@@ -112,7 +103,7 @@ export function MobileNav({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
+                    onClick={() => setOpenedPath(null)}
                     aria-label="Tutup menu"
                     className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-primary-soft hover:text-primary"
                   >
